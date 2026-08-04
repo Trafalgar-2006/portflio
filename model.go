@@ -45,6 +45,7 @@ const (
 	ViewContacts
 	ViewResume
 	ViewNow
+	ViewGames
 )
 
 var tabNames = []string{"Projects", "About", "Contacts", "Resume", "/now"}
@@ -206,6 +207,10 @@ type Model struct {
 
 	// Sine wave distortion toggle
 	waveOn bool
+
+	// Mini-games
+	games   []views.Game
+	gameIdx int
 }
 
 func NewModel(r *lipgloss.Renderer) Model {
@@ -336,6 +341,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.stopScreensaver()
 			return m, nil
+		}
+
+		// An active game claims movement keys; esc still exits to home.
+		if m.currentView == ViewGames && len(m.games) > 0 && m.gameIdx < len(m.games) {
+			k := msg.String()
+			if k == "esc" || k == "ctrl+c" || k == "q" {
+				m.startWipe(ViewHome, m.activeTab)
+				return m, nil
+			}
+			if k == "t" {
+				m.themeIdx = (m.themeIdx + 1) % len(views.Themes)
+				m.themeFlash = 4
+				return m, nil
+			}
+			if m.games[m.gameIdx].Key(k) {
+				m.idleTicks = 0
+				return m, nil
+			}
 		}
 
 		// Track key for Konami sequence
@@ -504,8 +527,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				steps := m.consumeNum(1)
 				prev := m.projectCursor
 				m.projectCursor += steps
-				if m.projectCursor >= len(views.AllProjects) {
-					m.projectCursor = len(views.AllProjects) - 1
+				if n := views.ProjectCount(); m.projectCursor >= n {
+					m.projectCursor = n - 1
 				}
 				if m.projectCursor < 0 {
 					m.projectCursor = 0
@@ -572,7 +595,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "G":
 			if m.currentView == ViewProjects {
 				prev := m.projectCursor
-				m.projectCursor = len(views.AllProjects) - 1
+				m.projectCursor = views.ProjectCount() - 1
 				if m.projectCursor < 0 { m.projectCursor = 0 }
 				if m.projectCursor != prev { m.shiftGhost(prev); m.tagPopReveal = 0; m.startDecrypt(); m.followProjectCursor() }
 				m.numBuf = ""
@@ -624,6 +647,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.splatter = nil
 				m.commitPendingView()
 			}
+			return m, tickCmd()
+		}
+
+		// ── Mini-game clock ───────────────────────────────────────
+		if m.currentView == ViewGames && len(m.games) > 0 && m.gameIdx < len(m.games) {
+			m.games[m.gameIdx].Step()
 			return m, tickCmd()
 		}
 
@@ -839,10 +868,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// ── Project cascade + tag pop + lerp + decrypt ────────────
 		if m.currentView == ViewProjects {
-			if m.tickCount%2 == 0 && m.projectsReveal < len(views.AllProjects) {
+			if m.tickCount%2 == 0 && m.projectsReveal < views.ProjectCount() {
 				m.projectsReveal++
 			}
-			if m.tagPopReveal < len(views.AllProjects[m.projectCursor].Tags) {
+			if p, ok := views.ProjectAt(m.projectCursor); ok && m.tagPopReveal < len(p.Tags) {
 				m.tagPopReveal++
 			}
 
@@ -930,6 +959,10 @@ func (m Model) renderBody(theme views.Theme) string {
 		content = views.RenderResume(m.renderer, m.width, m.height, theme)
 	case ViewNow:
 		content = views.RenderNow(m.renderer, m.width, m.height, buildDateLabel(), theme)
+	case ViewGames:
+		if len(m.games) > 0 && m.gameIdx < len(m.games) {
+			content = "\n" + m.games[m.gameIdx].Render(m.renderer, theme)
+		}
 	default:
 		return ""
 	}
@@ -1031,6 +1064,20 @@ func (m *Model) scrollBy(delta int) {
 	if m.scrollY < 0 {
 		m.scrollY = 0
 	}
+}
+
+// startGame opens a mini-game, seeding the registry at the current size.
+func (m *Model) startGame(idx int) {
+	if len(m.games) == 0 {
+		m.games = views.NewAllGames(m.width, m.height)
+	}
+	if idx < 0 || idx >= len(m.games) {
+		return
+	}
+	m.gameIdx = idx
+	m.games[idx].Resize(m.width, m.height)
+	m.games[idx].Restart()
+	m.startWipe(ViewGames, m.activeTab)
 }
 
 // commitPendingView performs the actual view switch once an outbound
@@ -1297,10 +1344,11 @@ func (m *Model) consumeNum(def int) int {
 
 // startDecrypt seeds a fresh decrypt animation for the current project's description.
 func (m *Model) startDecrypt() {
-	if m.projectCursor >= len(views.AllProjects) {
+	p, ok := views.ProjectAt(m.projectCursor)
+	if !ok {
 		return
 	}
-	desc := []rune(views.AllProjects[m.projectCursor].Description)
+	desc := []rune(p.Description)
 	scramble := []rune("!@#$%^&*<>?/\\|~`[]{}ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 	runes := make([]rune, len(desc))
 	for i, r := range desc {
@@ -1334,8 +1382,8 @@ func (m *Model) shiftGhost(prev int) {
 func (m Model) breadcrumb() string {
 	switch m.currentView {
 	case ViewProjects:
-		if m.projectCursor < len(views.AllProjects) {
-			t := views.AllProjects[m.projectCursor].Title
+		if p, ok := views.ProjectAt(m.projectCursor); ok {
+			t := p.Title
 			if len([]rune(t)) > 20 { t = string([]rune(t)[:19]) + "..." }
 			return "home > projects > " + t
 		}
@@ -1348,6 +1396,11 @@ func (m Model) breadcrumb() string {
 		return "home > resume"
 	case ViewNow:
 		return "home > /now"
+	case ViewGames:
+		if len(m.games) > 0 && m.gameIdx < len(m.games) {
+			return "home > games > " + m.games[m.gameIdx].Name()
+		}
+		return "home > games"
 	default:
 		return "home"
 	}
@@ -1388,8 +1441,11 @@ func allCmdEntries() []cmdEntry {
 		{"Contacts", "contacts"},
 		{"Resume", "resume"},
 		{"/now", "now"},
+		{"Snake (game)", "game:0"},
+		{"Tetris (game)", "game:1"},
+		{"Screensaver / FX", "screensaver"},
 	}
-	for i, p := range views.AllProjects {
+	for i, p := range views.Projects() {
 		entries = append(entries, cmdEntry{p.Title, fmt.Sprintf("project:%d", i)})
 	}
 	return entries
@@ -1435,6 +1491,12 @@ func (m *Model) applyCmdSelection() {
 		m.startWipe(ViewResume, 3)
 	case "now":
 		m.startWipe(ViewNow, 4)
+	case "screensaver":
+		m.startScreensaver()
+	case "game:0":
+		m.startGame(0)
+	case "game:1":
+		m.startGame(1)
 	default:
 		if strings.HasPrefix(target, "project:") {
 			var idx int

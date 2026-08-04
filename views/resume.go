@@ -75,10 +75,11 @@ func RenderResume(r *lipgloss.Renderer, width, height int, theme Theme) string {
 
 	// ── Key Projects ──────────────────────────────────────────────────────────
 	// Drawn from the live project list, so the resume can't drift from Projects.
-	if len(AllProjects) > 0 {
+	keyProjects := Projects()
+	if len(keyProjects) > 0 {
 		b.WriteString("  " + goldStyle.Bold(true).Render("◆ KEY PROJECTS") + "\n\n")
 		shown := 0
-		for _, p := range AllProjects {
+		for _, p := range keyProjects {
 			if shown >= 4 {
 				break
 			}

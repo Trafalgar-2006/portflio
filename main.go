@@ -103,6 +103,11 @@ func runSSHServer() {
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
+	// Background worker: keep the project list in step with GitHub.
+	syncCtx, cancelSync := context.WithCancel(context.Background())
+	defer cancelSync()
+	StartGitHubSync(syncCtx)
+
 	// HTTP server: web portfolio at / and health check at /health.
 	// Most PaaS platforms (Railway, Render, Fly, Cloud Run) inject the port to
 	// bind as $PORT — honour it, or the health check never comes up.

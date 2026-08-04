@@ -367,3 +367,40 @@ func TestCtrlKOpensPalette(t *testing.T) {
 		t.Error("ctrl+k did not open the command palette")
 	}
 }
+
+// Launching a game from the palette must land in the game and accept input.
+func TestGameLaunchesFromPalette(t *testing.T) {
+	for _, tc := range []struct{ query, want string }{
+		{"snake", "snake"},
+		{"tetris", "tetris"},
+	} {
+		m := NewModel(nil)
+		m.currentView = ViewHome
+		m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 30}, key("/"))
+		m.cmdQuery = tc.query
+		m = settle(drive(m, key("enter")))
+
+		if m.currentView != ViewGames {
+			t.Fatalf("%s: expected ViewGames, got %v", tc.query, m.currentView)
+		}
+		if got := m.games[m.gameIdx].Name(); got != tc.want {
+			t.Errorf("launched %q, want %q", got, tc.want)
+		}
+
+		// Play a few frames; the frame must stay inside the terminal.
+		for i := 0; i < 40; i++ {
+			m = drive(m, key([]string{"left", "right", "up", "down"}[i%4]))
+			nm, _ := m.Update(tickMsg{})
+			m = nm.(Model)
+			if n := strings.Count(m.View(), "\n") + 1; n > 30 {
+				t.Fatalf("%s frame %d: %d rows exceeds terminal", tc.want, i, n)
+			}
+		}
+
+		// esc leaves the game.
+		m = settle(drive(m, key("esc")))
+		if m.currentView != ViewHome {
+			t.Errorf("%s: esc did not return home, got %v", tc.want, m.currentView)
+		}
+	}
+}

@@ -16,6 +16,7 @@ type Project struct {
 	Status      string // "Live", "Research", "WIP"
 	GitHubURL   string
 	Pinned      bool // never replaced by the GitHub auto-sync worker
+	FromGitHub  bool // added by the sync worker rather than content.yaml
 }
 
 var AllProjects = []Project{
@@ -91,7 +92,7 @@ func LoadFromConfig() {
 		})
 	}
 	if len(projects) > 0 {
-		AllProjects = projects
+		SetProjects(projects)
 	}
 	loadContactsFromConfig()
 	loadNarrativeFromConfig()
@@ -178,6 +179,7 @@ func ProjectListTop(cursor, scroll, rows int) int {
 	if rows < 1 {
 		rows = 1
 	}
+	total := ProjectCount()
 	top := scroll
 	if top > cursor {
 		top = cursor // cursor moved above the window — follow it up
@@ -185,7 +187,7 @@ func ProjectListTop(cursor, scroll, rows int) int {
 	if cursor >= top+rows {
 		top = cursor - rows + 1 // ...and below it — follow it down
 	}
-	if max := len(AllProjects) - rows; top > max {
+	if max := total - rows; top > max {
 		top = max
 	}
 	if top < 0 {
@@ -200,8 +202,8 @@ func ProjectListRows(height int) int {
 	if rows < 3 {
 		rows = 3
 	}
-	if rows > len(AllProjects) {
-		rows = len(AllProjects)
+	if total := ProjectCount(); rows > total {
+		rows = total
 	}
 	return rows
 }
@@ -219,19 +221,23 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 	decryptStyle    := r.NewStyle().Foreground(theme.Text)
 	hintStyle       := r.NewStyle().Foreground(theme.VeryDim).Italic(true)
 
+	// One snapshot per frame: the GitHub sync worker can replace the list
+	// mid-render otherwise.
+	projects := Projects()
+
 	// Nothing to show — bail before any indexing. Reachable when content.yaml
 	// parses to zero projects.
-	if len(AllProjects) == 0 {
+	if len(projects) == 0 {
 		return "\n  " + dimStyle.Render("No projects configured.") + "\n"
 	}
 
 	// Visual cursor row from lerp (rounded)
 	visualCursor := int(highlightY + 0.5)
 	if visualCursor < 0                  { visualCursor = 0 }
-	if visualCursor >= len(AllProjects)  { visualCursor = len(AllProjects) - 1 }
+	if visualCursor >= len(projects)  { visualCursor = len(projects) - 1 }
 
 	if cursor < 0                 { cursor = 0 }
-	if cursor >= len(AllProjects) { cursor = len(AllProjects) - 1 }
+	if cursor >= len(projects) { cursor = len(projects) - 1 }
 
 	// ── Layout math ───────────────────────────────────────────────
 	totalW  := width - 4
@@ -240,7 +246,7 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 	rightW  := totalW - leftW - dividerW - 2
 	if rightW < 30 { rightW = 30 }
 
-	p := AllProjects[cursor]
+	p := projects[cursor]
 
 	// The list gets its own window so it can't outgrow the terminal: header
 	// (3 rows) + footer (2 rows) + the surrounding chrome.
@@ -251,9 +257,9 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 	// ── LEFT PANEL — project list ──────────────────────────────────
 	var left strings.Builder
 	left.WriteString(cyanStyle.Bold(true).Render(" ✦ Projects") + "\n")
-	counter := fmt.Sprintf("%d projects", len(AllProjects))
-	if listRows < len(AllProjects) {
-		counter = fmt.Sprintf("%d/%d projects", cursor+1, len(AllProjects))
+	counter := fmt.Sprintf("%d projects", len(projects))
+	if listRows < len(projects) {
+		counter = fmt.Sprintf("%d/%d projects", cursor+1, len(projects))
 	}
 	left.WriteString(dimStyle.Render(" "+counter) + "\n")
 	if first > 0 {
@@ -262,7 +268,7 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 		left.WriteString(boxStyle.Render(" "+strings.Repeat("─", leftW-2)) + "\n")
 	}
 
-	for i, proj := range AllProjects {
+	for i, proj := range projects {
 		if i < first || i >= last {
 			continue
 		}
@@ -334,7 +340,7 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 		left.WriteString(fitToWidth(r, line+" "+spark+dot, leftW) + "\n")
 	}
 
-	if last < len(AllProjects) {
+	if last < len(projects) {
 		left.WriteString(boxStyle.Render(" "+strings.Repeat("─", leftW-6)) + dimStyle.Render(" ▼") + "\n")
 	} else {
 		left.WriteString(boxStyle.Render(" "+strings.Repeat("─", leftW-2)) + "\n")
@@ -429,10 +435,10 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 	rightLines = append(rightLines, row(dimStyle.Render("other projects")))
 	shown := 0
 	const maxOther = 6
-	for i, op := range AllProjects {
+	for i, op := range projects {
 		if i == cursor || i >= projectsReveal { continue }
 		if shown >= maxOther {
-			rightLines = append(rightLines, row(dimStyle.Render(fmt.Sprintf("  … %d more", len(AllProjects)-1-shown))))
+			rightLines = append(rightLines, row(dimStyle.Render(fmt.Sprintf("  … %d more", len(projects)-1-shown))))
 			break
 		}
 		title := op.Title
