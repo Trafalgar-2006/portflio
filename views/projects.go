@@ -15,6 +15,7 @@ type Project struct {
 	Highlight   string
 	Status      string // "Live", "Research", "WIP"
 	GitHubURL   string
+	Pinned      bool // never replaced by the GitHub auto-sync worker
 }
 
 var AllProjects = []Project{
@@ -38,7 +39,7 @@ var AllProjects = []Project{
 		Description: "AI-driven swing trader with market-wide signal generation, paper trading via Alpaca API, risk management, and automated order execution. Deployed on Oracle Cloud Always Free tier.",
 		Tags:        []string{"Python", "SQLite", "Alpaca API", "Oracle Cloud"},
 		Status:      "Live",
-		GitHubURL:   "github.com/trafalgar-2006/trading-agent",
+		GitHubURL:   "github.com/trafalgar-2006/autonomous-trading-agent",
 	},
 	{
 		Title:       "Webcraft Studios Platform",
@@ -67,7 +68,7 @@ var AllProjects = []Project{
 		Description: "This portfolio — an interactive TUI accessible over SSH from anywhere in the world. Auto-deploys from GitHub via Railway.",
 		Tags:        []string{"Go", "Docker", "Railway"},
 		Status:      "Live",
-		GitHubURL:   "github.com/trafalgar-2006/portflio",
+		GitHubURL:   "github.com/trafalgar-2006/portfolio",
 	},
 }
 
@@ -86,12 +87,14 @@ func LoadFromConfig() {
 			Status:      p.Status,
 			GitHubURL:   p.GitHubURL,
 			Highlight:   p.Highlight,
+			Pinned:      p.Pinned,
 		})
 	}
 	if len(projects) > 0 {
 		AllProjects = projects
 	}
 	loadContactsFromConfig()
+	loadNarrativeFromConfig()
 }
 
 
@@ -168,6 +171,41 @@ func sparklineStr(proj Project, tickCount int) string {
 	return sb.String()
 }
 
+// ProjectListTop returns the index of the first visible project row, keeping
+// the cursor inside a window of `rows` entries. The model calls this too, so
+// its stored scroll offset and what's drawn can't disagree.
+func ProjectListTop(cursor, scroll, rows int) int {
+	if rows < 1 {
+		rows = 1
+	}
+	top := scroll
+	if top > cursor {
+		top = cursor // cursor moved above the window — follow it up
+	}
+	if cursor >= top+rows {
+		top = cursor - rows + 1 // ...and below it — follow it down
+	}
+	if max := len(AllProjects) - rows; top > max {
+		top = max
+	}
+	if top < 0 {
+		top = 0
+	}
+	return top
+}
+
+// ProjectListRows is how many project rows fit in the list panel at this height.
+func ProjectListRows(height int) int {
+	rows := height - 8
+	if rows < 3 {
+		rows = 3
+	}
+	if rows > len(AllProjects) {
+		rows = len(AllProjects)
+	}
+	return rows
+}
+
 func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, projectsReveal, tagPopReveal int, livePulse bool, highlightY float64, decryptIdx int, decryptRunes []rune, tickCount, ghostCursor1, ghostFade1, ghostCursor2, ghostFade2 int, theme Theme) string {
 	goldStyle       := r.NewStyle().Foreground(theme.Accent).Bold(true)
 	cyanStyle       := r.NewStyle().Foreground(theme.Primary)
@@ -181,10 +219,19 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 	decryptStyle    := r.NewStyle().Foreground(theme.Text)
 	hintStyle       := r.NewStyle().Foreground(theme.VeryDim).Italic(true)
 
+	// Nothing to show — bail before any indexing. Reachable when content.yaml
+	// parses to zero projects.
+	if len(AllProjects) == 0 {
+		return "\n  " + dimStyle.Render("No projects configured.") + "\n"
+	}
+
 	// Visual cursor row from lerp (rounded)
 	visualCursor := int(highlightY + 0.5)
 	if visualCursor < 0                  { visualCursor = 0 }
 	if visualCursor >= len(AllProjects)  { visualCursor = len(AllProjects) - 1 }
+
+	if cursor < 0                 { cursor = 0 }
+	if cursor >= len(AllProjects) { cursor = len(AllProjects) - 1 }
 
 	// ── Layout math ───────────────────────────────────────────────
 	totalW  := width - 4
@@ -195,13 +242,30 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 
 	p := AllProjects[cursor]
 
+	// The list gets its own window so it can't outgrow the terminal: header
+	// (3 rows) + footer (2 rows) + the surrounding chrome.
+	listRows := ProjectListRows(height)
+	first := ProjectListTop(cursor, scroll, listRows)
+	last := first + listRows
+
 	// ── LEFT PANEL — project list ──────────────────────────────────
 	var left strings.Builder
 	left.WriteString(cyanStyle.Bold(true).Render(" ✦ Projects") + "\n")
-	left.WriteString(dimStyle.Render(" "+fmt.Sprintf("%d projects", len(AllProjects))) + "\n")
-	left.WriteString(boxStyle.Render(" "+strings.Repeat("─", leftW-2)) + "\n")
+	counter := fmt.Sprintf("%d projects", len(AllProjects))
+	if listRows < len(AllProjects) {
+		counter = fmt.Sprintf("%d/%d projects", cursor+1, len(AllProjects))
+	}
+	left.WriteString(dimStyle.Render(" "+counter) + "\n")
+	if first > 0 {
+		left.WriteString(boxStyle.Render(" "+strings.Repeat("─", leftW-6)) + dimStyle.Render(" ▲") + "\n")
+	} else {
+		left.WriteString(boxStyle.Render(" "+strings.Repeat("─", leftW-2)) + "\n")
+	}
 
 	for i, proj := range AllProjects {
+		if i < first || i >= last {
+			continue
+		}
 		if i >= projectsReveal {
 			if i == projectsReveal {
 				scanChar := []string{"▶", "▷", " "}[(projectsReveal/2)%3]
@@ -218,12 +282,20 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 		isGhost2   := i == ghostCursor2 && ghostFade2 > 0 && !isSelected && !isGhost1
 		num        := fmt.Sprintf("%d", i+1)
 
+		// Budget the row to exactly leftW columns:
+		//   " " + num + " " + title + pad + " " + spark(5) + dot(1)
+		// Anything wider pushes the divider column out of alignment.
+		const trailW = 7 // space + 5-cell sparkline + status dot
+		maxTitleW := leftW - trailW - len(num) - 2
+		if maxTitleW < 1 { maxTitleW = 1 }
+
 		title := proj.Title
-		maxTitleW := leftW - 9 // leave room for sparkline + dot
 		if len([]rune(title)) > maxTitleW {
 			runes := []rune(title)
 			title = string(runes[:maxTitleW-1]) + "…"
 		}
+		titlePad := maxTitleW - len([]rune(title))
+		if titlePad < 0 { titlePad = 0 }
 
 		sparkColor := lipgloss.Color(theme.Success)
 		if proj.Status == "WIP"      { sparkColor = theme.Warning }
@@ -231,21 +303,20 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 		sparkS := r.NewStyle().Foreground(sparkColor)
 		spark  := sparkS.Render(sparklineStr(proj, tickCount))
 
+		pad := strings.Repeat(" ", titlePad)
 		var line string
 		if isSelected {
-			padding := leftW - len(num) - len([]rune(title)) - 3
-			if padding < 0 { padding = 0 }
-			line = selectedBg.Render(" "+num+" "+title+strings.Repeat(" ", padding))
+			// Selected row carries a background, so the padding must be inside
+			// the styled span for the highlight bar to span the full column.
+			line = selectedBg.Render(" "+num+" "+title+pad)
 		} else if isGhost1 {
-			alpha := float64(ghostFade1) / 8.0
-			_ = alpha
-			line = r.NewStyle().Foreground(lipgloss.Color(theme.DimMid)).Render(" "+num+" "+title)
+			line = r.NewStyle().Foreground(lipgloss.Color(theme.DimMid)).Render(" "+num+" "+title) + pad
 		} else if isGhost2 {
-			line = r.NewStyle().Foreground(lipgloss.Color(theme.Dim)).Render(" "+num+" "+title)
+			line = r.NewStyle().Foreground(lipgloss.Color(theme.Dim)).Render(" "+num+" "+title) + pad
 		} else if isHover {
-			line = r.NewStyle().Foreground(theme.Primary).Render(" "+num+" ") + dimMidStyle.Render(title)
+			line = r.NewStyle().Foreground(theme.Primary).Render(" "+num+" ") + dimMidStyle.Render(title) + pad
 		} else {
-			line = unselectedStyle.Render(" "+num+" ") + dimStyle.Render(title)
+			line = unselectedStyle.Render(" "+num+" ") + dimStyle.Render(title) + pad
 		}
 
 		// Status dot
@@ -260,19 +331,30 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 		default:
 			dot = " "
 		}
-		left.WriteString(line + " " + spark + dot + "\n")
+		left.WriteString(fitToWidth(r, line+" "+spark+dot, leftW) + "\n")
 	}
 
-	left.WriteString(boxStyle.Render(" "+strings.Repeat("─", leftW-2)) + "\n")
-	left.WriteString(hintStyle.Render(" jk/↑↓  gg G  Nj  t theme") + "\n")
+	if last < len(AllProjects) {
+		left.WriteString(boxStyle.Render(" "+strings.Repeat("─", leftW-6)) + dimStyle.Render(" ▼") + "\n")
+	} else {
+		left.WriteString(boxStyle.Render(" "+strings.Repeat("─", leftW-2)) + "\n")
+	}
+	left.WriteString(hintStyle.Render(" jk move · PgDn · gg/G · t") + "\n")
 
 	// ── RIGHT PANEL — selected project detail with box border ──────
 	var rightLines []string
 
-	// Box top
-	boxTop    := boxStyle.Render("╭"+strings.Repeat("─", rightW-2)+"╮")
-	boxBottom := boxStyle.Render("╰"+strings.Repeat("─", rightW-2)+"╯")
+	// Box top/bottom, plus a row helper that closes the box on the right.
+	// Inner width is the column count between the two │ borders.
+	inner     := rightW - 2
+	boxTop    := boxStyle.Render("╭"+strings.Repeat("─", inner)+"╮")
+	boxBottom := boxStyle.Render("╰"+strings.Repeat("─", inner)+"╯")
 	borderL   := boxStyle.Render("│")
+	borderR   := boxStyle.Render("│")
+	row := func(content string) string {
+		return borderL + fitToWidth(r, " "+content, inner) + borderR
+	}
+	rule := func() string { return row(boxStyle.Render(strings.Repeat("─", inner-2))) }
 
 	// Title + status badge
 	titleLine := goldStyle.Render(p.Title)
@@ -290,11 +372,11 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 	}
 
 	rightLines = append(rightLines, boxTop)
-	for _, line := range strings.Split(wrapText(titleLine, rightW-4), "\n") {
-		rightLines = append(rightLines, borderL+" "+line)
+	for _, line := range strings.Split(wrapWidth(titleLine, inner-2), "\n") {
+		rightLines = append(rightLines, row(line))
 	}
-	rightLines = append(rightLines, borderL+" "+boxStyle.Render(strings.Repeat("─", rightW-4)))
-	rightLines = append(rightLines, borderL)
+	rightLines = append(rightLines, rule())
+	rightLines = append(rightLines, row(""))
 
 	// Description — decrypt reveal
 	var descText string
@@ -310,21 +392,21 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 				merged[j] = desc[j]
 			}
 		}
-		descText = wrapText(string(merged), rightW-4)
+		descText = wrapWidth(string(merged), inner-2)
 	} else {
-		descText = wrapText(p.Description, rightW-4)
+		descText = wrapWidth(p.Description, inner-2)
 	}
 	for _, line := range strings.Split(descText, "\n") {
-		rightLines = append(rightLines, borderL+" "+decryptStyle.Render(line))
+		rightLines = append(rightLines, row(decryptStyle.Render(line)))
 	}
-	rightLines = append(rightLines, borderL)
+	rightLines = append(rightLines, row(""))
 
 	// GitHub link
-	rightLines = append(rightLines, borderL+" "+boxStyle.Render(strings.Repeat("─", rightW-4)))
+	rightLines = append(rightLines, rule())
 	if p.GitHubURL != "" {
-		rightLines = append(rightLines, borderL+" "+orangeStyle.Render("→ "+p.GitHubURL))
+		rightLines = append(rightLines, row(orangeStyle.Render("→ "+p.GitHubURL)))
 	} else {
-		rightLines = append(rightLines, borderL+" "+dimStyle.Render("→ Private / Institutional repo"))
+		rightLines = append(rightLines, row(dimStyle.Render("→ Private / Institutional repo")))
 	}
 
 	// Tags — pop in
@@ -336,17 +418,30 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 		tagParts = append(tagParts, tagS.Render("["+t+"]"))
 	}
 	if len(tagParts) > 0 {
-		rightLines = append(rightLines, borderL+" "+strings.Join(tagParts, " "))
+		for _, line := range strings.Split(wrapWidth(strings.Join(tagParts, " "), inner-2), "\n") {
+			rightLines = append(rightLines, row(line))
+		}
 	}
 
-	// Other projects list
-	rightLines = append(rightLines, borderL)
-	rightLines = append(rightLines, borderL+" "+boxStyle.Render(strings.Repeat("─", rightW-4)))
-	rightLines = append(rightLines, borderL+" "+dimStyle.Render("other projects"))
+	// Other projects list — capped so the panel can't outgrow the terminal.
+	rightLines = append(rightLines, row(""))
+	rightLines = append(rightLines, rule())
+	rightLines = append(rightLines, row(dimStyle.Render("other projects")))
+	shown := 0
+	const maxOther = 6
 	for i, op := range AllProjects {
 		if i == cursor || i >= projectsReveal { continue }
+		if shown >= maxOther {
+			rightLines = append(rightLines, row(dimStyle.Render(fmt.Sprintf("  … %d more", len(AllProjects)-1-shown))))
+			break
+		}
+		title := op.Title
+		if maxT := inner - 9; maxT > 1 && len([]rune(title)) > maxT {
+			title = string([]rune(title)[:maxT-1]) + "…"
+		}
 		dot := dimStyle.Render("·")
-		rightLines = append(rightLines, borderL+" "+dot+" "+dimStyle.Render(fmt.Sprintf("%02d", i+1)+". ")+dimMidStyle.Render(op.Title))
+		rightLines = append(rightLines, row(dot+" "+dimStyle.Render(fmt.Sprintf("%02d", i+1)+". ")+dimMidStyle.Render(title)))
+		shown++
 	}
 	rightLines = append(rightLines, boxBottom)
 
@@ -362,38 +457,11 @@ func RenderProjects(r *lipgloss.Renderer, width, height, cursor, scroll, project
 	var out strings.Builder
 	out.WriteString("\n")
 	for i := range leftLines {
-		lLine := leftLines[i]
+		lLine := fitToWidth(r, leftLines[i], leftW)
 		rLine := rightLines[i]
-
-		lVis := len([]rune(stripAnsi(lLine)))
-		if lVis < leftW {
-			lLine += strings.Repeat(" ", leftW-lVis)
-		}
 		out.WriteString(" "+lLine+" "+sep+" "+rLine+"\n")
 	}
 	return out.String()
 }
 
 
-func wrapText(text string, maxWidth int) string {
-	if maxWidth <= 0 {
-		return text
-	}
-	words := strings.Fields(text)
-	var lines []string
-	var currentLine strings.Builder
-	for _, word := range words {
-		if currentLine.Len()+len(word)+1 > maxWidth {
-			lines = append(lines, currentLine.String())
-			currentLine.Reset()
-		}
-		if currentLine.Len() > 0 {
-			currentLine.WriteString(" ")
-		}
-		currentLine.WriteString(word)
-	}
-	if currentLine.Len() > 0 {
-		lines = append(lines, currentLine.String())
-	}
-	return strings.Join(lines, "\n")
-}

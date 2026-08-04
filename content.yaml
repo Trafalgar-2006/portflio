@@ -1,3 +1,102 @@
+# ─────────────────────────────────────────────────────────────
+# Single source of truth for every screen in the SSH portfolio
+# and the web build. Edit here — nothing below is hardcoded in Go.
+# ─────────────────────────────────────────────────────────────
+
+profile:
+  name: "Mohith Akshay Duggirala"
+  tagline: "ML Engineer · Full-Stack Developer · Builder"
+  location: "Bengaluru, Karnataka, India"
+  headline: "AI/ML Engineer · Full-Stack Developer · Computer Vision"
+  resume_url: "https://github.com/Trafalgar-2006/portfolio/raw/master/Mohith_Akshay_Duggirala_Resume.pdf"
+  drive:
+    - "Shipping things that actually work in production —"
+    - "from satellite CV at ISRO, to a live autonomous"
+    - "trading system, to this SSH portfolio you're in now."
+
+education:
+  - school: "Manipal Institute of Technology, Bengaluru"
+    degree: "B.Tech — Electronics & Computer Engineering"
+    period: "Aug 2023 – Jul 2027"
+    note: "GPA: In Progress"
+    bullets:
+      - "President, MBOSC (Manipal Bengaluru Open Source Community)"
+      - "Coursework: DSA, Algorithms, Network Protocols, Embedded Systems"
+
+experience:
+  - title: "Computer Vision Intern"
+    org: "ISRO – LEOS"
+    period: "Dec 2025 – Jan 2026"
+    location: "Bengaluru"
+    bullets:
+      - "BlenderProc pipeline → 6,000+ COCO/YOLO annotated images"
+      - "YOLOv7 on Jetson Xavier via TensorRT — 22 FPS real-time"
+      - "GAN domain adaptation to close sim-to-real gap"
+  - title: "Software Engineering Intern"
+    org: "SenseOps Tech Solutions"
+    period: "May – Jul 2025"
+    location: "Bengaluru"
+    bullets:
+      - "Rebuilt portfolio: mobile-first, Lighthouse gains"
+      - "Custom UDP/TCP packet analyser for vibration sensor network"
+  - title: "Founder & Lead Engineer"
+    org: "Webcraft Studios"
+    period: "Jan 2025 – Present"
+    location: "Bengaluru"
+    bullets:
+      - "Digital agency, multiple intl. SaaS clients in year one"
+      - "React / Node.js / MongoDB / Stripe — subscription billing"
+  - title: "President"
+    org: "MBOSC"
+    period: "2024 – Present"
+    location: "Manipal Bengaluru"
+    bullets:
+      - "Leading the open source developer community on campus"
+
+# Proficiency bars shown in About. category: lang | ml | frame | infra
+skills:
+  - { name: "Python",     pct: 95, category: lang }
+  - { name: "Go",         pct: 82, category: lang }
+  - { name: "TypeScript", pct: 75, category: lang }
+  - { name: "C / C++",    pct: 65, category: lang }
+  - { name: "PyTorch",    pct: 88, category: ml }
+  - { name: "TensorFlow", pct: 78, category: ml }
+  - { name: "YOLOv7",     pct: 85, category: ml }
+  - { name: "TensorRT",   pct: 72, category: ml }
+  - { name: "React",      pct: 80, category: frame }
+  - { name: "Node.js",    pct: 77, category: frame }
+  - { name: "Docker",     pct: 83, category: infra }
+  - { name: "AWS",        pct: 68, category: infra }
+
+# Category listings shown on the Resume tab.
+skill_groups:
+  - category: "AI / ML"
+    items: "PyTorch · TensorFlow · Transformers · LoRA · GGUF · ONNX"
+  - category: "Languages"
+    items: "Python · Go · TypeScript · C/C++"
+  - category: "CV / Vision"
+    items: "OpenCV · YOLO · Segmentation · Remote Sensing · BlenderProc"
+  - category: "Web / Backend"
+    items: "React · Next.js · Node.js · FastAPI · Docker"
+  - category: "Tools"
+    items: "Git · Linux · CUDA · Firebase · Oracle Cloud"
+
+now:
+  building:
+    - "EmbedGen — LLM fine-tuning on embedded-systems code"
+    - "Autonomous trading agent (paper trading, live)"
+    - "This SSH portfolio — always iterating on it"
+  learning:
+    - "Distributed systems & consensus algorithms (Raft)"
+    - "Rust for embedded targets"
+    - "Advanced quantization — AWQ, GPTQ"
+  reading:
+    - "\"Designing Data-Intensive Applications\" — Kleppmann"
+    - "\"The Pragmatic Programmer\" — Hunt & Thomas"
+  status:
+    - "B.Tech ECE @ Manipal Institute of Technology, Bengaluru (2023–2027)"
+    - "Open to SWE / ML internships and research roles"
+
 projects:
   - title: "EmbedGen — Domain-Specific Code LLM"
     description: "Built a 62M-parameter transformer from scratch trained on embedded-systems C/C++ codebases. Custom BPE tokeniser (32k vocab), MiniHash LSH deduplication, multi-head attention with RoPE + RMSNorm. Quantized to ONNX FP16 for edge deployment. EmbedGen outperforms CodeLLaMA-7B (80x larger) on EmbedEval — a domain-specific benchmark across 10 embedded categories (GPIO, UART, DMA, FreeRTOS, SPI, ADC, Timers, Interrupts). Ships as a VS Code extension with C/C++ autocomplete."
@@ -50,7 +149,7 @@ projects:
     github: "github.com/trafalgar-2006/BioAcoustic-Frog-Classifier"
 
   - title: "SSH Portfolio (this one)"
-    description: "An interactive TUI portfolio served over raw SSH — no browser, no JavaScript. Built in Go with Bubbletea and Wish. Matrix rain intro, fake boot sequence, 4 colour themes, split-pane projects view, live visitor counter, jittering ping display, decrypt-reveal animations, vim motions, and smooth lerp transitions. You're looking at it right now."
+    description: "An interactive TUI portfolio served over raw SSH — no browser, no JavaScript. Built in Go with Bubbletea and Wish. Matrix rain intro, fake boot sequence, 5 colour themes, split-pane projects view, live visitor counter, jittering ping display, decrypt-reveal animations, vim motions, and smooth lerp transitions. You're looking at it right now."
     tags: [Go, Bubbletea, Docker, Wish, SSH]
     status: Live
     github: "github.com/trafalgar-2006/portfolio"

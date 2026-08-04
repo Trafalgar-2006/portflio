@@ -6,7 +6,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func RenderNow(r *lipgloss.Renderer, width, height int, theme Theme) string {
+// RenderNow draws the /now page. lastUpdated is derived from the build date so
+// the freshness stamp can't drift out of date the way a hardcoded one does.
+func RenderNow(r *lipgloss.Renderer, width, height int, lastUpdated string, theme Theme) string {
 	cyanStyle    := r.NewStyle().Foreground(lipgloss.Color(theme.Primary))
 	goldStyle    := r.NewStyle().Foreground(lipgloss.Color(theme.Accent)).Bold(true)
 	dimStyle     := r.NewStyle().Foreground(lipgloss.Color(theme.Dim))
@@ -23,46 +25,68 @@ func RenderNow(r *lipgloss.Renderer, width, height int, theme Theme) string {
 	b.WriteString(divider + "\n\n")
 	b.WriteString("  " + dimMidStyle.Italic(true).Render("A live snapshot of what I'm building and focused on.") + "\n\n")
 
-	// Currently building
+	// Size the box to its longest entry (+ bullet + padding) so content.yaml
+	// items aren't silently truncated, then clamp to the terminal.
 	boxW := 52
-	if width < boxW+6 { boxW = width - 6 }
+	for _, list := range [][]string{TheNow.Building, TheNow.Learning} {
+		for _, it := range list {
+			if need := lipgloss.Width(it) + 4; need > boxW {
+				boxW = need
+			}
+		}
+	}
+	if width-6 < boxW { boxW = width - 6 }
+	if boxW < minBoxWidth { boxW = minBoxWidth } // guard: negative Repeat on tiny terminals
 	bTop := "  " + boxStyle.Render("╭"+strings.Repeat("─", boxW)+"╮")
 	bBot := "  " + boxStyle.Render("╰"+strings.Repeat("─", boxW)+"╯")
 	bRow := func(s string) string {
-		vis := lipgloss.Width(s)
-		pad := ""
-		if boxW-1-vis > 0 { pad = strings.Repeat(" ", boxW-1-vis) }
-		return "  " + boxStyle.Render("│") + " " + s + pad + boxStyle.Render("│")
+		// Fit, not just pad — long entries would push the right border out.
+		return "  " + boxStyle.Render("│") + fitToWidth(r, " "+s, boxW) + boxStyle.Render("│")
 	}
 
-	b.WriteString("  " + goldStyle.Render("◆ Currently Building") + "\n")
-	b.WriteString(bTop + "\n")
-	b.WriteString(bRow(greenStyle.Render("▸ ") + dimStyle.Render("EmbedGen — LLM fine-tuning on embedded-systems code")) + "\n")
-	b.WriteString(bRow(greenStyle.Render("▸ ") + dimStyle.Render("Autonomous trading agent (paper trading, live)")) + "\n")
-	b.WriteString(bRow(greenStyle.Render("▸ ") + dimStyle.Render("This SSH portfolio — always iterating on it")) + "\n")
-	b.WriteString(bBot + "\n\n")
+	// Boxed list sections, driven entirely by content.yaml.
+	section := func(title string, items []string) {
+		if len(items) == 0 {
+			return
+		}
+		b.WriteString("  " + goldStyle.Render("◆ "+title) + "\n")
+		b.WriteString(bTop + "\n")
+		for _, it := range items {
+			b.WriteString(bRow(greenStyle.Render("▸ ") + dimStyle.Render(it)) + "\n")
+		}
+		b.WriteString(bBot + "\n\n")
+	}
 
-	// Currently learning
-	b.WriteString("  " + goldStyle.Render("◆ Currently Learning") + "\n")
-	b.WriteString(bTop + "\n")
-	b.WriteString(bRow(greenStyle.Render("▸ ") + dimStyle.Render("Distributed systems & consensus algorithms (Raft)")) + "\n")
-	b.WriteString(bRow(greenStyle.Render("▸ ") + dimStyle.Render("Rust for embedded targets")) + "\n")
-	b.WriteString(bRow(greenStyle.Render("▸ ") + dimStyle.Render("Advanced quantization — AWQ, GPTQ")) + "\n")
-	b.WriteString(bBot + "\n\n")
+	section("Currently Building", TheNow.Building)
+	section("Currently Learning", TheNow.Learning)
 
-	// Reading
-	b.WriteString("  " + goldStyle.Render("◆ Reading") + "\n")
-	b.WriteString("  " + dimStyle.Render("  \"Designing Data-Intensive Applications\" — Kleppmann") + "\n")
-	b.WriteString("  " + dimStyle.Render("  \"The Pragmatic Programmer\" — Hunt & Thomas") + "\n\n")
+	if len(TheNow.Reading) > 0 {
+		b.WriteString("  " + goldStyle.Render("◆ Reading") + "\n")
+		for _, it := range TheNow.Reading {
+			b.WriteString("  " + dimStyle.Render("  "+it) + "\n")
+		}
+		b.WriteString("\n")
+	}
 
-	// Status / availability
-	b.WriteString("  " + goldStyle.Render("◆ Status") + "\n")
-	b.WriteString("  " + magentaStyle.Render("B.Tech ECE") + dimStyle.Render(" @ Manipal Institute of Technology, Bengaluru (2023–2027)") + "\n")
-	b.WriteString("  " + greenStyle.Render("Open to") + dimStyle.Render(" SWE / ML internships and research roles — from Jul 2025") + "\n\n")
+	if len(TheNow.Status) > 0 {
+		b.WriteString("  " + goldStyle.Render("◆ Status") + "\n")
+		for i, it := range TheNow.Status {
+			if i == 0 {
+				b.WriteString("  " + magentaStyle.Render(it) + "\n")
+			} else {
+				b.WriteString("  " + greenStyle.Render(it) + "\n")
+			}
+		}
+		b.WriteString("\n")
+	}
 
 	b.WriteString("  " + boxStyle.Render(strings.Repeat("─", 50)) + "\n")
-	b.WriteString("  " + dimMidStyle.Italic(true).Render("last updated: July 2025") + "\n\n")
-	b.WriteString("  " + hintStyle.Render("[esc to go back]") + "\n")
+	if lastUpdated != "" {
+		b.WriteString("  " + dimMidStyle.Italic(true).Render("last updated: "+lastUpdated) + "\n\n")
+	} else {
+		b.WriteString("\n")
+	}
+	b.WriteString("  " + hintStyle.Render("[↑↓/jk scroll · PgUp/PgDn page · gg/G top-bottom · esc back]") + "\n")
 
 	return b.String()
 }

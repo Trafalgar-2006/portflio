@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -27,6 +29,9 @@ import (
 
 // visitorCount tracks concurrent active SSH sessions (atomic, safe for concurrent access)
 var visitorCount atomic.Int64
+
+// startedAt is the process start time, reported by /health as uptime.
+var startedAt = time.Now()
 
 //go:embed index.html
 var indexHTML embed.FS
@@ -98,7 +103,14 @@ func runSSHServer() {
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// HTTP server: web portfolio at / and health check at /health
+	// HTTP server: web portfolio at / and health check at /health.
+	// Most PaaS platforms (Railway, Render, Fly, Cloud Run) inject the port to
+	// bind as $PORT — honour it, or the health check never comes up.
+	httpPort := os.Getenv("PORT")
+	if httpPort == "" {
+		httpPort = "8080"
+	}
+
 	go func() {
 		mux := http.NewServeMux()
 
@@ -114,14 +126,30 @@ func runSSHServer() {
 			w.Write(data)
 		})
 
-		// Health check for UptimeRobot / Railway
+		// Health check for UptimeRobot / Railway. Returns JSON so the monitor
+		// carries useful signal (uptime, build, live sessions) rather than "OK".
 		mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("OK"))
+			json.NewEncoder(w).Encode(map[string]any{
+				"status":   "ok",
+				"uptime":   time.Since(startedAt).Round(time.Second).String(),
+				"uptimeMs": time.Since(startedAt).Milliseconds(),
+				"sessions": visitorCount.Load(),
+				"commit":   BuildCommit,
+				"built":    BuildDate,
+				"go":       runtime.Version(),
+			})
 		})
 
-		log.Println("Web portfolio + health check listening on :8080")
-		http.ListenAndServe(":8080", mux)
+		addr := net.JoinHostPort("", httpPort)
+		log.Printf("Web portfolio + health check listening on %s", addr)
+		// Don't swallow this: if the port is taken the health check silently
+		// dies and uptime monitoring reports the whole service as down.
+		if err := http.ListenAndServe(addr, mux); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("HTTP server error: %v", err)
+		}
 	}()
 
 	log.Printf("Starting SSH server on %s:%s", host, port)

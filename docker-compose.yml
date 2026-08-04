@@ -2,12 +2,19 @@ services:
   ssh-portfolio:
     build: .
     ports:
-      - "23234:23234"
+      - "23234:23234" # SSH TUI
+      - "8080:8080"   # web portfolio + /health
     env_file:
       - .env
     volumes:
       - ssh-keys:/app/.ssh
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   ssh-keys:

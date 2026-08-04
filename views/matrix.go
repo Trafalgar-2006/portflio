@@ -116,7 +116,13 @@ func cellKindAt(x, y int, cols []MatrixColumn, locked map[[2]int]rune, fade bool
 	}
 	col := cols[x]
 	dist := col.Head - y
-	idx := (y + col.Head + len(col.Chars)) % len(col.Chars)
+	// Head starts as far negative as -(height+4), which can exceed len(Chars)
+	// on a tall terminal — adding len(Chars) once isn't enough to make the
+	// remainder non-negative, so normalise explicitly.
+	idx := (y + col.Head) % len(col.Chars)
+	if idx < 0 {
+		idx += len(col.Chars)
+	}
 	ch := col.Chars[idx]
 
 	if fade {
@@ -185,7 +191,11 @@ func RenderMatrix(r *lipgloss.Renderer, width, height int, cols []MatrixColumn, 
 				b.WriteString(t) // spaces — no ANSI
 			}
 		}
-		b.WriteString("\n")
+		// No trailing newline after the final row: emitting height+1 lines
+		// overflows the terminal and scrolls the frame.
+		if y < height-1 {
+			b.WriteString("\n")
+		}
 	}
 	return b.String()
 }
