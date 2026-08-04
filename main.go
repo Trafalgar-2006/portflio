@@ -17,7 +17,9 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
+	"github.com/muesli/termenv"
 	"github.com/charmbracelet/wish"
 	"github.com/charmbracelet/wish/activeterm"
 	"github.com/charmbracelet/wish/bubbletea"
@@ -103,10 +105,16 @@ func runSSHServer() {
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// Background worker: keep the project list in step with GitHub.
+	// Restore the guestbook before accepting connections.
+	if err := TheGuestbook.Load(); err != nil {
+		log.Printf("Guestbook: could not load history: %v", err)
+	}
+
+	// Background workers: GitHub project sync and (optional) WakaTime stats.
 	syncCtx, cancelSync := context.WithCancel(context.Background())
 	defer cancelSync()
 	StartGitHubSync(syncCtx)
+	StartWakaTime(syncCtx)
 
 	// HTTP server: web portfolio at / and health check at /health.
 	// Most PaaS platforms (Railway, Render, Fly, Cloud Run) inject the port to
@@ -184,16 +192,56 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	// Increment on connect, decrement when the session ends
 	visitorCount.Add(1)
 	count := visitorCount.Load()
+	recordVisit(count)
+
+	// Subscribe to guestbook broadcasts, and tear it down with the session so
+	// a long-running server doesn't accumulate dead subscribers.
+	notify, unsubscribe := TheGuestbook.Subscribe()
 	go func() {
 		<-s.Context().Done()
 		visitorCount.Add(-1)
+		unsubscribe()
 	}()
+
+	info := gatherSessionInfo(s)
 
 	m := NewModel(renderer)
 	m.visitorCount = count
+	m.guestNotify = notify
+	m.guestEntries = TheGuestbook.Entries()
+	m.isAdmin = isAdminSession(s)
+	m.directRoute = info.Direct
+	m.client = views.ClientInfo{
+		User:     info.User,
+		Client:   clientName(info.ClientVer),
+		Term:     info.Term,
+		Width:    info.Width,
+		Height:   info.Height,
+		KeyType:  info.KeyType,
+		MaskedIP: maskIP(info.RemoteIP),
+		Colors:   colorDepth(renderer),
+	}
+	if info.Width > 0 && info.Height > 0 {
+		m.width, m.height = info.Width, info.Height
+	}
+	m.applyDirectRoute()
 
 	return m, []tea.ProgramOption{
 		tea.WithAltScreen(),
 		tea.WithMouseCellMotion(),
+	}
+}
+
+// colorDepth reports how many colours the client's terminal advertises.
+func colorDepth(r *lipgloss.Renderer) int {
+	switch r.ColorProfile() {
+	case termenv.TrueColor:
+		return 16777216
+	case termenv.ANSI256:
+		return 256
+	case termenv.ANSI:
+		return 16
+	default:
+		return 0
 	}
 }

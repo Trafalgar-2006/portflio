@@ -46,6 +46,9 @@ const (
 	ViewResume
 	ViewNow
 	ViewGames
+	ViewNeofetch
+	ViewGuestbook
+	ViewAdmin
 )
 
 var tabNames = []string{"Projects", "About", "Contacts", "Resume", "/now"}
@@ -211,6 +214,20 @@ type Model struct {
 	// Mini-games
 	games   []views.Game
 	gameIdx int
+
+	// Client/session facts, used by the neofetch greeting and admin view
+	client views.ClientInfo
+	// directRoute is the view requested via `ssh host <command>`, if any
+	directRoute string
+
+	// Guestbook
+	guestInput   views.GuestbookInput
+	guestEntries []views.GuestEntry
+	guestOnline  int
+	guestNotify  <-chan struct{} // broadcast from other sessions
+
+	// Admin dashboard (gated on an operator SSH key)
+	isAdmin bool
 }
 
 func NewModel(r *lipgloss.Renderer) Model {
@@ -270,8 +287,76 @@ func NewModel(r *lipgloss.Renderer) Model {
 	}
 }
 
+// guestbookMsg signals that another session posted a message.
+type guestbookMsg struct{}
+
+// waitForGuestbook blocks on the guestbook notification channel and turns the
+// next broadcast into a message. Re-armed after each delivery, so a session
+// keeps receiving updates for as long as it's connected.
+func waitForGuestbook(ch <-chan struct{}) tea.Cmd {
+	if ch == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		if _, ok := <-ch; !ok {
+			return nil // unsubscribed
+		}
+		return guestbookMsg{}
+	}
+}
+
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tickCmd(), fetchCommit())
+	return tea.Batch(tickCmd(), fetchCommit(), waitForGuestbook(m.guestNotify))
+}
+
+// applyDirectRoute honours `ssh mohith.is-a.dev <command>` by skipping the
+// intro and opening the requested screen immediately.
+func (m *Model) applyDirectRoute() {
+	if m.directRoute == "" {
+		return
+	}
+	route := m.directRoute
+	m.directRoute = "" // one-shot
+
+	// Jump past matrix/boot/alert straight to content.
+	m.currentView = ViewHome
+	m.revealIdx = views.BannerLines()
+	m.taglineIdx = len([]rune(views.TaglineText))
+	m.taglineDone = true
+	m.cursorLeft = 0
+
+	switch route {
+	case "projects":
+		m.currentView, m.activeTab = ViewProjects, 0
+		m.projectsReveal, m.tagPopReveal = 999, 999
+	case "about":
+		m.currentView, m.activeTab = ViewAbout, 1
+	case "contacts":
+		m.currentView, m.activeTab = ViewContacts, 2
+		m.contactsReveal = 999
+	case "resume":
+		m.currentView, m.activeTab = ViewResume, 3
+	case "now":
+		m.currentView, m.activeTab = ViewNow, 4
+	case "neofetch", "help":
+		m.currentView = ViewNeofetch
+	case "snake":
+		m.games = views.NewAllGames(m.width, m.height)
+		m.gameIdx, m.currentView = 0, ViewGames
+	case "tetris":
+		m.games = views.NewAllGames(m.width, m.height)
+		m.gameIdx, m.currentView = 1, ViewGames
+	case "fx":
+		m.startScreensaver()
+	case "guestbook":
+		m.currentView = ViewGuestbook
+	case "admin":
+		if m.isAdmin {
+			m.currentView = ViewAdmin
+		} else {
+			m.currentView = ViewNeofetch
+		}
+	}
 }
 
 // rebuildMatrix re-seeds the rain columns and the crystallising name origin for
@@ -340,6 +425,54 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.stopScreensaver()
+			return m, nil
+		}
+
+		// The guestbook compose box swallows text input while active.
+		if m.currentView == ViewGuestbook && m.guestInput.Active {
+			switch k := msg.String(); k {
+			case "esc":
+				m.guestInput.Active = false
+				m.guestInput.Err = ""
+			case "tab", "shift+tab":
+				m.guestInput.Field = 1 - m.guestInput.Field
+			case "enter":
+				if strings.TrimSpace(m.guestInput.Message) == "" {
+					m.guestInput.Err = "message can't be empty"
+					break
+				}
+				if _, ok := TheGuestbook.Post(m.guestInput.Name, m.guestInput.Message, m.sessionID); ok {
+					m.guestInput = views.GuestbookInput{JustPosted: true}
+					m.guestEntries = TheGuestbook.Entries()
+					m.scrollBy(1 << 20) // jump to the newest message
+				} else {
+					m.guestInput.Err = "message was empty after trimming"
+				}
+			case "backspace":
+				if m.guestInput.Field == 0 {
+					m.guestInput.Name = dropLastRune(m.guestInput.Name)
+				} else {
+					m.guestInput.Message = dropLastRune(m.guestInput.Message)
+				}
+			case "space":
+				m.appendGuestRune(" ")
+			default:
+				if len([]rune(k)) == 1 {
+					m.appendGuestRune(k)
+				}
+			}
+			m.idleTicks = 0
+			return m, nil
+		}
+
+		// Reading the guestbook: [i] opens the compose box.
+		if m.currentView == ViewGuestbook && msg.String() == "i" {
+			m.guestInput.Active = true
+			m.guestInput.JustPosted = false
+			m.guestInput.Err = ""
+			if m.guestInput.Name == "" {
+				m.guestInput.Name = m.client.User
+			}
 			return m, nil
 		}
 
@@ -907,6 +1040,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, tickCmd()
 
+	// ── Another session posted to the guestbook ─────────────────
+	case guestbookMsg:
+		m.guestEntries = TheGuestbook.Entries()
+		return m, waitForGuestbook(m.guestNotify)
+
 	// ── GitHub commit fetch result ──────────────────────────────
 	case commitMsg:
 		m.lastCommit = string(msg)
@@ -963,6 +1101,24 @@ func (m Model) renderBody(theme views.Theme) string {
 		if len(m.games) > 0 && m.gameIdx < len(m.games) {
 			content = "\n" + m.games[m.gameIdx].Render(m.renderer, theme)
 		}
+	case ViewGuestbook:
+		content = views.RenderGuestbook(m.renderer, m.width, m.height,
+			m.guestEntries, m.guestInput, int(m.visitorCount), m.tickCount%14 < 7, theme)
+	case ViewAdmin:
+		if m.isAdmin {
+			content = views.RenderAdmin(m.renderer, m.width, m.height, collectAdminStats(), theme)
+		} else {
+			content = views.RenderAdminDenied(m.renderer, theme)
+		}
+	case ViewNeofetch:
+		info := m.client
+		info.SessionID = m.sessionID
+		secs := int(time.Since(m.sessionStart).Seconds())
+		info.Connected = fmt.Sprintf("%02d:%02d", secs/60, secs%60)
+		if info.Width == 0 {
+			info.Width, info.Height = m.width, m.height
+		}
+		content = views.RenderNeofetch(m.renderer, m.width, m.height, info, theme)
 	default:
 		return ""
 	}
@@ -1063,6 +1219,30 @@ func (m *Model) scrollBy(delta int) {
 	}
 	if m.scrollY < 0 {
 		m.scrollY = 0
+	}
+}
+
+// dropLastRune removes the final rune, so backspace works on multi-byte input.
+func dropLastRune(s string) string {
+	r := []rune(s)
+	if len(r) == 0 {
+		return s
+	}
+	return string(r[:len(r)-1])
+}
+
+// appendGuestRune adds a character to the focused compose field, enforcing the
+// same limits the store applies so the UI can't promise more than it stores.
+func (m *Model) appendGuestRune(s string) {
+	m.guestInput.Err = ""
+	if m.guestInput.Field == 0 {
+		if len([]rune(m.guestInput.Name)) < maxNameLen {
+			m.guestInput.Name += s
+		}
+	} else {
+		if len([]rune(m.guestInput.Message)) < maxMessageLen {
+			m.guestInput.Message += s
+		}
 	}
 }
 
@@ -1401,6 +1581,12 @@ func (m Model) breadcrumb() string {
 			return "home > games > " + m.games[m.gameIdx].Name()
 		}
 		return "home > games"
+	case ViewNeofetch:
+		return "home > system"
+	case ViewGuestbook:
+		return "home > guestbook"
+	case ViewAdmin:
+		return "home > admin"
 	default:
 		return "home"
 	}
@@ -1444,6 +1630,8 @@ func allCmdEntries() []cmdEntry {
 		{"Snake (game)", "game:0"},
 		{"Tetris (game)", "game:1"},
 		{"Screensaver / FX", "screensaver"},
+		{"System info (neofetch)", "neofetch"},
+		{"Guestbook", "guestbook"},
 	}
 	for i, p := range views.Projects() {
 		entries = append(entries, cmdEntry{p.Title, fmt.Sprintf("project:%d", i)})
@@ -1493,6 +1681,11 @@ func (m *Model) applyCmdSelection() {
 		m.startWipe(ViewNow, 4)
 	case "screensaver":
 		m.startScreensaver()
+	case "neofetch":
+		m.startWipe(ViewNeofetch, m.activeTab)
+	case "guestbook":
+		m.guestEntries = TheGuestbook.Entries()
+		m.startWipe(ViewGuestbook, m.activeTab)
 	case "game:0":
 		m.startGame(0)
 	case "game:1":
