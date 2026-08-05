@@ -36,8 +36,8 @@ type Guestbook struct {
 	path    string
 	max     int
 
-	subMu sync.Mutex
-	subs  map[int]chan struct{}
+	subMu  sync.Mutex
+	subs   map[int]chan struct{}
 	nextID int
 }
 

@@ -404,3 +404,28 @@ func TestGameLaunchesFromPalette(t *testing.T) {
 		}
 	}
 }
+
+// A client reporting a 0x0 window must not collapse the viewport to one row.
+func TestZeroSizeWindowFallsBack(t *testing.T) {
+	m := NewModel(nil)
+	m.currentView = ViewHome
+	m = drive(m, tea.WindowSizeMsg{Width: 0, Height: 0})
+
+	if m.width != defaultWidth || m.height != defaultHeight {
+		t.Errorf("0x0 window gave %dx%d, want the %dx%d fallback",
+			m.width, m.height, defaultWidth, defaultHeight)
+	}
+	if vh := m.viewportHeight(); vh < 10 {
+		t.Errorf("viewport collapsed to %d rows", vh)
+	}
+	// A partially-zero report must fall back on that axis only.
+	m = drive(m, tea.WindowSizeMsg{Width: 120, Height: 0})
+	if m.width != 120 || m.height != defaultHeight {
+		t.Errorf("120x0 gave %dx%d, want 120x%d", m.width, m.height, defaultHeight)
+	}
+	// A real size must still be honoured.
+	m = drive(m, tea.WindowSizeMsg{Width: 150, Height: 50})
+	if m.width != 150 || m.height != 50 {
+		t.Errorf("valid size not applied: %dx%d", m.width, m.height)
+	}
+}

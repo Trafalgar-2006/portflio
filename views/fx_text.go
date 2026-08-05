@@ -68,9 +68,9 @@ func allSettled(gs []glyph) bool {
 // SlotTextEffect spins each column like a combination lock until the correct
 // character clicks into place, left to right.
 type SlotTextEffect struct {
-	w, h    int
-	glyphs  []glyph
-	frame   int
+	w, h     int
+	glyphs   []glyph
+	frame    int
 	alphabet []rune
 }
 
@@ -186,14 +186,14 @@ func (e *SwarmTextEffect) Render(r *lipgloss.Renderer, theme Theme) string {
 // SpotlightTextEffect sweeps a torch beam across hidden text, revealing what
 // it passes over and leaving it lit.
 type SpotlightTextEffect struct {
-	w, h    int
-	lines   []string
-	lit     []bool // per glyph
-	glyphs  []glyph
-	beamX   float64
-	beamY   float64
-	frame   int
-	done    bool
+	w, h   int
+	lines  []string
+	lit    []bool // per glyph
+	glyphs []glyph
+	beamX  float64
+	beamY  float64
+	frame  int
+	done   bool
 }
 
 func NewSpotlightTextEffect() *SpotlightTextEffect { return &SpotlightTextEffect{} }

@@ -18,8 +18,8 @@ import (
 //
 // Effects auto-advance every autoCycleTicks unless locked.
 const (
-	saverIdleTicks  = 900 // 45s at 50ms/tick before it kicks in on its own
-	autoCycleTicks  = 400 // 20s per effect
+	saverIdleTicks = 900 // 45s at 50ms/tick before it kicks in on its own
+	autoCycleTicks = 400 // 20s per effect
 )
 
 // startScreensaver enters the saver, seeding the effect registry at the

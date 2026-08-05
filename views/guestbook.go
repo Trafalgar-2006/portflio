@@ -35,8 +35,8 @@ func relativeTime(t time.Time) string {
 
 // GuestbookInput is the compose-box state owned by the model.
 type GuestbookInput struct {
-	Active     bool   // composing rather than reading
-	Field      int    // 0 = name, 1 = message
+	Active     bool // composing rather than reading
+	Field      int  // 0 = name, 1 = message
 	Name       string
 	Message    string
 	Err        string

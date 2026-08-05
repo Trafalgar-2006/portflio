@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -49,17 +50,32 @@ const (
 	ViewNeofetch
 	ViewGuestbook
 	ViewAdmin
+	ViewTimeline
 )
 
 var tabNames = []string{"Projects", "About", "Contacts", "Resume", "/now"}
 
 type tickMsg time.Time
 
+// frameInterval is the animation clock. 50ms = 20fps, which is the sweet spot
+// over SSH: fast enough to read as smooth, slow enough that a full-screen
+// effect on a 200x60 terminal doesn't saturate a slow link.
+//
+// Effects that don't need every frame (matrix rain) already sub-sample it.
+const frameInterval = 50 * time.Millisecond
+
 func tickCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*50, func(t time.Time) tea.Msg {
+	return tea.Tick(frameInterval, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
+
+// defaultWidth/Height are the assumed terminal size until the client reports
+// a real one — and the fallback when it reports a nonsensical 0x0.
+const (
+	defaultWidth  = 80
+	defaultHeight = 24
+)
 
 const numStars = 8
 
@@ -228,6 +244,12 @@ type Model struct {
 
 	// Admin dashboard (gated on an operator SSH key)
 	isAdmin bool
+
+	// Git time-travel timeline
+	timelineCursor int
+
+	// Memoised body for static views (see frameCache)
+	cache *frameCache
 }
 
 func NewModel(r *lipgloss.Renderer) Model {
@@ -243,7 +265,7 @@ func NewModel(r *lipgloss.Renderer) Model {
 	}
 
 	// Matrix: initialise with default terminal size; resized on first WindowSizeMsg
-	w, h := 80, 24
+	w, h := defaultWidth, defaultHeight
 	nameX, nameY := views.MatrixNameOrigin(w, h)
 	allCells := views.ComputeNameCells(nameX, nameY, views.NameBannerLines())
 	pending := make([][2]int, 0, len(allCells))
@@ -284,6 +306,7 @@ func NewModel(r *lipgloss.Renderer) Model {
 		pingMs:            12 + rand.Intn(9),
 		pingJitter:        8,
 		portraitShimRow:   -1,
+		cache:             &frameCache{},
 	}
 }
 
@@ -306,7 +329,7 @@ func waitForGuestbook(ch <-chan struct{}) tea.Cmd {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(tickCmd(), fetchCommit(), waitForGuestbook(m.guestNotify))
+	return tea.Batch(tickCmd(), fetchCommit(), fetchHistory(), waitForGuestbook(m.guestNotify))
 }
 
 // applyDirectRoute honours `ssh mohith.is-a.dev <command>` by skipping the
@@ -395,11 +418,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
-		if msg.Width == m.width && msg.Height == m.height {
+		// Some clients (and non-interactive `ssh -tt` invocations) report a
+		// 0x0 window. Taking that literally collapses the viewport to one row,
+		// so fall back to a sane default instead of believing it.
+		w, h := msg.Width, msg.Height
+		if w <= 0 {
+			w = defaultWidth
+		}
+		if h <= 0 {
+			h = defaultHeight
+		}
+		if w == m.width && h == m.height {
 			return m, nil
 		}
-		m.width = msg.Width
-		m.height = msg.Height
+		m.width = w
+		m.height = h
 		// The rain and the name it crystallises into were sized for the initial
 		// 80x24 guess. Rebuild them, or wide terminals get rain in the leftmost
 		// 80 columns and an off-centre name.
@@ -616,6 +649,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "left", "h":
+			if m.currentView == ViewTimeline {
+				if m.timelineCursor < len(views.Commits())-1 {
+					m.timelineCursor++ // left = further back in time
+				}
+				return m, nil
+			}
 			if m.currentView == ViewHome {
 				m.quitPending = false
 				m.activeTab--
@@ -626,6 +665,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "right", "l":
+			if m.currentView == ViewTimeline {
+				if m.timelineCursor > 0 {
+					m.timelineCursor-- // right = forward toward today
+				}
+				return m, nil
+			}
 			if m.currentView == ViewHome {
 				m.quitPending = false
 				m.activeTab++
@@ -1040,6 +1085,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, tickCmd()
 
+	// ── Commit history for the time-travel view ─────────────────
+	case historyMsg:
+		views.SetCommits([]views.Commit(msg))
+		return m, nil
+
 	// ── Another session posted to the guestbook ─────────────────
 	case guestbookMsg:
 		m.guestEntries = TheGuestbook.Entries()
@@ -1066,9 +1116,47 @@ func (m Model) viewportHeight() int {
 	return h
 }
 
-// renderBody renders the current view's full, unclipped content. View() clips
-// it to the viewport; Update() measures it to clamp scrolling.
+// frameCache memoises the rendered body of views that don't animate. Those
+// screens are rebuilt on every 20fps tick otherwise — About alone is ~68 rows
+// of styled string assembly — and the output is byte-identical each time.
+// It's a pointer so the value-receiver View/renderBody can still fill it.
+type frameCache struct {
+	key  string
+	body string
+}
+
+// bodyCacheKey returns a signature for the current static view, or "" when
+// the view animates and must be re-rendered every frame.
+func (m Model) bodyCacheKey() string {
+	switch m.currentView {
+	case ViewAbout, ViewResume, ViewNow, ViewNeofetch, ViewTimeline:
+		// Everything that can change this view's bytes goes in the key.
+		return fmt.Sprintf("%d|%dx%d|t%d|s%d|w%v|tl%d|p%d|c%d|h%d",
+			m.currentView, m.width, m.height, m.themeIdx, m.scrollY, m.waveOn,
+			m.timelineCursor, views.ProjectCount(), len(views.Commits()),
+			time.Now().Hour()) // About's greeting is time-of-day dependent
+	default:
+		return ""
+	}
+}
+
+// renderBody returns the current view's full, unclipped content, serving
+// static views from the frame cache. View() clips the result to the viewport;
+// Update() measures it to clamp scrolling.
 func (m Model) renderBody(theme views.Theme) string {
+	key := m.bodyCacheKey()
+	if key != "" && m.cache != nil && m.cache.key == key {
+		return m.cache.body
+	}
+	body := m.renderBodyUncached(theme)
+	if key != "" && m.cache != nil {
+		m.cache.key, m.cache.body = key, body
+	}
+	return body
+}
+
+// renderBodyUncached does the actual per-view rendering.
+func (m Model) renderBodyUncached(theme views.Theme) string {
 	var content string
 
 	switch m.currentView {
@@ -1110,6 +1198,8 @@ func (m Model) renderBody(theme views.Theme) string {
 		} else {
 			content = views.RenderAdminDenied(m.renderer, theme)
 		}
+	case ViewTimeline:
+		content = views.RenderTimeline(m.renderer, m.width, m.height, m.timelineCursor, views.Commits(), theme)
 	case ViewNeofetch:
 		info := m.client
 		info.SessionID = m.sessionID
@@ -1587,6 +1677,8 @@ func (m Model) breadcrumb() string {
 		return "home > guestbook"
 	case ViewAdmin:
 		return "home > admin"
+	case ViewTimeline:
+		return "home > time travel"
 	default:
 		return "home"
 	}
@@ -1632,6 +1724,7 @@ func allCmdEntries() []cmdEntry {
 		{"Screensaver / FX", "screensaver"},
 		{"System info (neofetch)", "neofetch"},
 		{"Guestbook", "guestbook"},
+		{"Time travel (git history)", "timeline"},
 	}
 	for i, p := range views.Projects() {
 		entries = append(entries, cmdEntry{p.Title, fmt.Sprintf("project:%d", i)})
@@ -1686,6 +1779,9 @@ func (m *Model) applyCmdSelection() {
 	case "guestbook":
 		m.guestEntries = TheGuestbook.Entries()
 		m.startWipe(ViewGuestbook, m.activeTab)
+	case "timeline":
+		m.timelineCursor = 0
+		m.startWipe(ViewTimeline, m.activeTab)
 	case "game:0":
 		m.startGame(0)
 	case "game:1":
@@ -1840,3 +1936,59 @@ func (m Model) renderKonamiEasterEgg() string {
 	return b.String()
 }
 
+
+// historyMsg carries the fetched commit history for the time-travel view.
+type historyMsg []views.Commit
+
+// fetchHistory pulls recent commits from the GitHub API. Failures are silent:
+// the timeline just shows its "fetching" state rather than an error screen.
+func fetchHistory() tea.Cmd {
+	return func() tea.Msg {
+		client := &http.Client{Timeout: 8 * time.Second}
+		req, err := http.NewRequest(http.MethodGet,
+			"https://api.github.com/repos/Trafalgar-2006/portfolio/commits?per_page=100", nil)
+		if err != nil {
+			return historyMsg(nil)
+		}
+		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("User-Agent", "ssh-portfolio")
+		if tok := os.Getenv("GITHUB_TOKEN"); tok != "" {
+			req.Header.Set("Authorization", "Bearer "+tok)
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return historyMsg(nil)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return historyMsg(nil)
+		}
+
+		var payload []struct {
+			SHA    string `json:"sha"`
+			Commit struct {
+				Message string `json:"message"`
+				Author  struct {
+					Name string `json:"name"`
+					Date string `json:"date"`
+				} `json:"author"`
+			} `json:"commit"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+			return historyMsg(nil)
+		}
+
+		out := make([]views.Commit, 0, len(payload))
+		for _, c := range payload {
+			at, _ := time.Parse(time.RFC3339, c.Commit.Author.Date)
+			out = append(out, views.Commit{
+				SHA:     c.SHA,
+				Message: c.Commit.Message,
+				Author:  c.Commit.Author.Name,
+				At:      at,
+			})
+		}
+		return historyMsg(out)
+	}
+}

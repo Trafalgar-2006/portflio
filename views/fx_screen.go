@@ -286,12 +286,12 @@ func (e *WireframeEffect) Render(r *lipgloss.Renderer, theme Theme) string {
 // LifeEffect runs Conway's Game of Life. Stagnation is detected by population
 // history and reseeded, so it never settles into a dead screen.
 type LifeEffect struct {
-	w, h   int
-	cells  []bool
-	next   []bool
-	age    []uint8
-	pop    []int
-	gen    int
+	w, h  int
+	cells []bool
+	next  []bool
+	age   []uint8
+	pop   []int
+	gen   int
 }
 
 func NewLifeEffect(w, h int) *LifeEffect {
@@ -577,10 +577,10 @@ func (e *SandEffect) Render(r *lipgloss.Renderer, theme Theme) string {
 // TunnelEffect is the demoscene warp tunnel: each cell's colour comes from its
 // polar coordinates, with depth scrolling toward the viewer.
 type TunnelEffect struct {
-	w, h  int
-	t     float64
-	cx    float64
-	cy    float64
+	w, h int
+	t    float64
+	cx   float64
+	cy   float64
 }
 
 func NewTunnelEffect(w, h int) *TunnelEffect {
@@ -622,7 +622,7 @@ func (e *TunnelEffect) Render(r *lipgloss.Renderer, theme Theme) string {
 				continue
 			}
 			ang := math.Atan2(dy, dx)
-			depth := 8.0/dist + e.t          // scrolls toward the viewer
+			depth := 8.0/dist + e.t // scrolls toward the viewer
 			twist := ang/math.Pi*4 + depth*0.4
 
 			// Checkerboard the tunnel wall from depth and angle.

@@ -250,18 +250,18 @@ var tetrominoes = [7][4][4]point{
 
 // TetrisGame is a standard 10-wide well with gravity, rotation and line clears.
 type TetrisGame struct {
-	w, h    int
-	grid    []uint8 // 0 empty, else piece index + 1
-	piece   int
-	rot     int
-	px, py  int
-	nextP   int
-	score   int
-	lines   int
-	over    bool
-	paused  bool
-	tick    int
-	speed   int
+	w, h   int
+	grid   []uint8 // 0 empty, else piece index + 1
+	piece  int
+	rot    int
+	px, py int
+	nextP  int
+	score  int
+	lines  int
+	over   bool
+	paused bool
+	tick   int
+	speed  int
 }
 
 func NewTetrisGame(w, h int) *TetrisGame {
