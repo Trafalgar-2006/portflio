@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"runtime"
 	"strings"
 	"time"
 
@@ -255,17 +254,11 @@ type Model struct {
 	// Help overlay (?) — the keymap, reachable from anywhere
 	helpOpen bool
 
-	// Cockpit ambient effect: one live FX panel on the home screen, so the
-	// animation engine is part of the UI rather than hidden behind a hotkey.
-	ambientFX   views.Effect
-	ambientIdx  int
-	ambientTick int
-
-	// Entrance choreography. introTick is when the reveal began; revealPct
-	// runs 0..100 and drives the typewriter and the staggered work rows.
-	introDone bool
-	introTick int
-	revealPct int
+	// UI state machine (see ui.go): boot → idle → shade.
+	bootDone   bool
+	bootStart  int
+	shadeStart int // tick the current page re-shade began; -1 when idle
+	navHover   int // nav index under the pointer, -1 when none
 }
 
 func NewModel(r *lipgloss.Renderer) Model {
@@ -322,6 +315,8 @@ func NewModel(r *lipgloss.Renderer) Model {
 		pingMs:          12 + rand.Intn(9),
 		pingJitter:      8,
 		portraitShimRow: -1,
+		shadeStart:      noShade,
+		navHover:        noHover,
 		cache:           &frameCache{},
 	}
 }
@@ -459,11 +454,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.MouseMsg:
-		// Mouse clicks drive the interactive sandboxes (sand, life, fire…).
+		// Clicks drive the interactive sandboxes (sand, life, fire…).
 		if m.saverActive && len(m.saverFX) > 0 && m.saverIdx < len(m.saverFX) {
 			if msg.Action == tea.MouseActionPress || msg.Action == tea.MouseActionMotion {
 				m.saverFX[m.saverIdx].Interact(msg.X, msg.Y)
 			}
+			return m, nil
+		}
+		// STATE 1: hovering a nav item highlights it, no click required.
+		m.navHover = views.HeroNavHit(m.width, len(navLabels), msg.X, msg.Y)
+		if msg.Action == tea.MouseActionPress && m.navHover >= 0 {
+			m.activeTab = m.navHover
 		}
 		return m, nil
 
@@ -544,7 +545,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// Nothing stands between a visitor and the content.
-		m.skipIntro()
+		m.finishBoot()
 
 		// Help overlay swallows the next key, whatever it is.
 		if m.helpOpen {
@@ -693,7 +694,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.quitPending = false
 				m.activeTab--
 				if m.activeTab < 0 {
-					m.activeTab = len(navItems) - 1
+					m.activeTab = len(navLabels) - 1
 				}
 			}
 			return m, nil
@@ -708,63 +709,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentView == ViewHome {
 				m.quitPending = false
 				m.activeTab++
-				if m.activeTab >= len(navItems) {
+				if m.activeTab >= len(navLabels) {
 					m.activeTab = 0
 				}
 			}
 			return m, nil
 
 		case "up", "k":
-			if m.currentView == ViewProjects {
-				steps := m.consumeNum(1)
-				prev := m.projectCursor
-				m.projectCursor -= steps
-				if m.projectCursor < 0 {
-					m.projectCursor = 0
-				}
-				if m.projectCursor != prev {
-					m.shiftGhost(prev)
-					m.tagPopReveal = 0
-					m.velocity -= float64(steps) * 0.4
-					m.startDecrypt()
-					m.followProjectCursor()
-				}
-			} else if m.currentView == ViewHome {
-				m.activeTab--
-				if m.activeTab < 0 {
-					m.activeTab = len(navItems) - 1
-				}
-			} else if m.currentView > ViewHome {
-				m.scrollBy(-m.consumeNum(1))
-			}
+			m.scrollBy(-m.consumeNum(1))
 			return m, nil
 
 		case "down", "j":
-			if m.currentView == ViewProjects {
-				steps := m.consumeNum(1)
-				prev := m.projectCursor
-				m.projectCursor += steps
-				if n := views.ProjectCount(); m.projectCursor >= n {
-					m.projectCursor = n - 1
-				}
-				if m.projectCursor < 0 {
-					m.projectCursor = 0
-				}
-				if m.projectCursor != prev {
-					m.shiftGhost(prev)
-					m.tagPopReveal = 0
-					m.velocity += float64(steps) * 0.4
-					m.startDecrypt()
-					m.followProjectCursor()
-				}
-			} else if m.currentView == ViewHome {
-				m.activeTab++
-				if m.activeTab >= len(navItems) {
-					m.activeTab = 0
-				}
-			} else if m.currentView > ViewHome {
-				m.scrollBy(m.consumeNum(1))
-			}
+			m.scrollBy(m.consumeNum(1))
 			return m, nil
 
 		// Page/half-page scrolling works on every content view, including
@@ -848,8 +804,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			if m.currentView == ViewHome {
 				m.quitPending = false
-				if m.activeTab >= 0 && m.activeTab < len(navTargets) {
-					target := navTargets[m.activeTab]
+				if m.activeTab >= 0 && m.activeTab < len(navView) {
+					if navLabels[m.activeTab] == "Quit" {
+						m.exitPhase = 1
+						m.exitTick = m.tickCount
+						return m, nil
+					}
+					target := navView[m.activeTab]
 					if target == ViewGames {
 						m.startGame(0)
 					} else {
@@ -914,19 +875,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tickCmd()
 		}
 
-		// ── Entrance choreography ─────────────────────────────────
-		// Compressed rain + name, then the cockpit fills in around an
-		// already-usable layout. Never blocks; always skippable.
-		if m.tickIntro() {
+		// ── STATE 0: boot timeline ────────────────────────────────
+		if m.tickUI() {
 			return m, tickCmd()
-		}
-
-		// Keep the home screen's ambient effect sized and rotating.
-		if m.currentView == ViewHome {
-			m.syncAmbient()
-			if m.ambientFX != nil {
-				m.ambientFX.Step()
-			}
 		}
 
 		// ── Independent star twinkle ──────────────────────────────
@@ -1122,9 +1073,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // terminal frame. Those views are returned verbatim: they already fill W×H
 // and carry their own status bar, so the viewport clip and the scrolling
 // footer would only corrupt them.
-func (m Model) isFullBleed() bool {
-	return m.currentView == ViewHome
-}
+func (m Model) isFullBleed() bool { return true }
 
 // footerHeight is the number of rows renderFooterBar occupies.
 const footerHeight = 2
@@ -1188,66 +1137,10 @@ func (m Model) renderBody(theme views.Theme) string {
 }
 
 // renderBodyUncached does the actual per-view rendering.
+// renderBodyUncached composes the whole frame through the UI state machine.
+// Every view is full-bleed now: one composer owns header, rules and footer.
 func (m Model) renderBodyUncached(theme views.Theme) string {
-	var content string
-
-	switch m.currentView {
-	case ViewMatrix:
-		return views.RenderMatrix(m.renderer, m.width, m.height, m.matrixCols, m.matrixLocked, m.matrixPhase == 2, theme)
-	case ViewBoot:
-		return views.RenderBoot(m.renderer, m.width, m.height, m.bootVisible, m.bootLines, theme)
-	case ViewAlert:
-		return views.RenderAlert(m.renderer, m.width, m.height, m.alertPhase, theme)
-	case ViewHome:
-		return m.renderCockpit(theme)
-	case ViewLegacyHome:
-		starBright := make([]bool, numStars)
-		for i, s := range m.stars {
-			starBright[i] = s.Bright
-		}
-		buildInfo := fmt.Sprintf("build %s · %s", BuildCommit, runtime.Version())
-		connectedSecs := int(time.Since(m.sessionStart).Seconds())
-		content = views.RenderHome(m.renderer, m.width, m.height, m.revealIdx, starBright, m.taglineIdx, m.taglineDone, m.cursorBlink, m.glitchFrames, m.glitchRunes, m.lastCommit, m.sessionID, connectedSecs, buildInfo, m.scanlineY, m.idleGlitch, m.portraitShimRow, theme)
-		content += m.renderTabBar(theme)
-	case ViewProjects:
-		content = views.RenderProjects(m.renderer, m.width, m.height, m.projectCursor, m.projectScroll, m.projectsReveal, m.tagPopReveal, m.livePulse, m.highlightY, m.decryptIdx, m.decryptRunes, m.tickCount, m.ghostCursor1, m.ghostFade1, m.ghostCursor2, m.ghostFade2, theme)
-	case ViewAbout:
-		content = views.RenderAbout(m.renderer, m.width, m.height, theme)
-	case ViewContacts:
-		content = views.RenderContacts(m.renderer, m.width, m.height, m.contactsReveal, m.sshFlash, m.contactsCopyMode, theme)
-	case ViewResume:
-		content = views.RenderResume(m.renderer, m.width, m.height, theme)
-	case ViewNow:
-		content = views.RenderNow(m.renderer, m.width, m.height, buildDateLabel(), theme)
-	case ViewGames:
-		if len(m.games) > 0 && m.gameIdx < len(m.games) {
-			content = "\n" + m.games[m.gameIdx].Render(m.renderer, theme)
-		}
-	case ViewGuestbook:
-		content = views.RenderGuestbook(m.renderer, m.width, m.height,
-			m.guestEntries, m.guestInput, int(m.visitorCount), m.tickCount%14 < 7, theme)
-	case ViewAdmin:
-		if m.isAdmin {
-			content = views.RenderAdmin(m.renderer, m.width, m.height, collectAdminStats(), theme)
-		} else {
-			content = views.RenderAdminDenied(m.renderer, theme)
-		}
-	case ViewTimeline:
-		content = views.RenderTimeline(m.renderer, m.width, m.height, m.timelineCursor, views.Commits(), theme)
-	case ViewNeofetch:
-		info := m.client
-		info.SessionID = m.sessionID
-		secs := int(time.Since(m.sessionStart).Seconds())
-		info.Connected = fmt.Sprintf("%02d:%02d", secs/60, secs%60)
-		if info.Width == 0 {
-			info.Width, info.Height = m.width, m.height
-		}
-		content = views.RenderNeofetch(m.renderer, m.width, m.height, info, theme)
-	default:
-		return ""
-	}
-
-	return content
+	return m.renderUI(theme)
 }
 
 func (m Model) View() string {
@@ -1257,10 +1150,6 @@ func (m Model) View() string {
 	// Exit animation in progress
 	if m.exitPhase == 1 {
 		return m.renderExitAnimation()
-	}
-	// Help overlay — reachable from anywhere, closes on any key.
-	if m.helpOpen {
-		return views.RenderHelp(m.renderer, m.width, m.height, views.Themes[m.themeIdx])
 	}
 	// Konami easter egg overlay
 	if m.konamiDone {
@@ -1351,7 +1240,7 @@ func (m *Model) followProjectCursor() {
 // scrollBy moves the viewport by delta rows, clamped to the current body.
 func (m *Model) scrollBy(delta int) {
 	theme := views.Themes[m.themeIdx]
-	max := views.MaxScroll(m.renderBody(theme), m.viewportHeight())
+	max := m.maxContentScroll(theme)
 	m.scrollY += delta
 	if m.scrollY > max {
 		m.scrollY = max
@@ -1470,6 +1359,8 @@ func (m *Model) startWipe(target View, tab int) {
 		m.highlightY = 0
 	}
 	m.commitPendingView()
+	// STATE 2: the pane clears instantly and the new content streams in.
+	m.beginShade()
 }
 
 func (m Model) renderTabBar(theme views.Theme) string {

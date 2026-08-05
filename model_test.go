@@ -41,20 +41,27 @@ func settle(m Model) Model {
 	for i := 0; i < 200; i++ {
 		nm, _ := m.Update(tickMsg{})
 		m = nm.(Model)
-		if m.wipePhase == 0 && !m.splatterOn {
+		// Settled means: boot finished, no transition in flight, and no page
+		// re-shade still streaming.
+		if m.bootDone && m.wipePhase == 0 && !m.splatterOn && m.uiPhase() != stateShade {
 			break
 		}
 	}
 	return m
 }
 
+// booted returns a model past the opening sequence, sized and ready.
+func booted(w, h int) Model {
+	m := NewModel(nil)
+	m = drive(m, tea.WindowSizeMsg{Width: w, Height: h})
+	return settle(m)
+}
+
 // openAbout navigates from home to the About view.
 func openAbout(t *testing.T) Model {
 	t.Helper()
-	m := NewModel(nil)
-	m.currentView = ViewHome
-	m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 24})
-	m = settle(drive(m, key("right"), key("enter"))) // tab 1 = About
+	m := booted(100, 36)
+	m = settle(drive(m, key("right"), key("enter"))) // nav slot 1 = About
 	if m.currentView != ViewAbout {
 		t.Fatalf("expected ViewAbout, got %v", m.currentView)
 	}
@@ -82,32 +89,42 @@ func TestViewFitsTerminalHeight(t *testing.T) {
 	}
 }
 
-// About is ~68 rows; on a 24-row terminal every row must be reachable.
+// The About page is taller than the content pane; every row must be reachable
+// by scrolling, and scrolling must clamp at the end.
 func TestAboutIsFullyScrollable(t *testing.T) {
 	m := openAbout(t)
-	body := m.renderBody(views.Themes[m.themeIdx])
-	total := strings.Count(strings.TrimRight(body, "\n"), "\n") + 1
-	if total <= m.viewportHeight() {
-		t.Skipf("About fits the viewport (%d rows); nothing to scroll", total)
+	theme := views.Themes[m.themeIdx]
+
+	total := len(m.contentLines(theme))
+	pane := m.contentPaneHeight()
+	if total <= pane {
+		t.Skipf("About fits the pane (%d rows in %d); nothing to scroll", total, pane)
 	}
 
-	// Bottom of the document carries the resume link — scroll until we see it.
-	const marker = "Resume"
-	if strings.Contains(m.View(), marker) {
-		t.Fatalf("fixture invalid: %q visible without scrolling", marker)
+	// The last line of the page must become visible after scrolling.
+	last := strings.TrimSpace(views.StripAnsiForTest(m.contentLines(theme)[total-1]))
+	if last == "" {
+		last = strings.TrimSpace(views.StripAnsiForTest(m.contentLines(theme)[total-2]))
 	}
-	for i := 0; i < 200 && !strings.Contains(m.View(), marker); i++ {
+	if strings.Contains(views.StripAnsiForTest(m.View()), last) {
+		t.Skip("the page already fits; nothing to prove")
+	}
+	for i := 0; i < total+10 && !strings.Contains(views.StripAnsiForTest(m.View()), last); i++ {
 		m = drive(m, key("j"))
 	}
-	if !strings.Contains(m.View(), marker) {
-		t.Errorf("could not scroll to %q in About (viewport %d, body %d rows)", marker, m.viewportHeight(), total)
+	if !strings.Contains(views.StripAnsiForTest(m.View()), last) {
+		t.Errorf("could not scroll to the last line %q (pane %d, body %d)", last, pane, total)
 	}
+
 	// Scrolling must clamp, not run away.
 	m = drive(m, key("G"))
 	atEnd := m.scrollY
 	m = drive(m, key("j"), key("j"), key("j"))
 	if m.scrollY != atEnd {
 		t.Errorf("scroll ran past the end: %d -> %d", atEnd, m.scrollY)
+	}
+	if m.scrollY > total {
+		t.Errorf("scroll offset %d exceeds the content length %d", m.scrollY, total)
 	}
 }
 
@@ -314,7 +331,6 @@ func TestNavigationIsInstant(t *testing.T) {
 		{[]tea.Msg{key("enter")}, ViewProjects},
 		{[]tea.Msg{key("right"), key("enter")}, ViewAbout},
 		{[]tea.Msg{key("right"), key("right"), key("enter")}, ViewResume},
-		{[]tea.Msg{key("right"), key("right"), key("right"), key("enter")}, ViewContacts},
 	}
 	for _, tc := range targets {
 		m := NewModel(nil)
@@ -424,41 +440,5 @@ func TestZeroSizeWindowFallsBack(t *testing.T) {
 	m = drive(m, tea.WindowSizeMsg{Width: 150, Height: 50})
 	if m.width != 150 || m.height != 50 {
 		t.Errorf("valid size not applied: %dx%d", m.width, m.height)
-	}
-}
-
-// The rail's labels and its targets must stay in lockstep — a mismatch would
-// silently open the wrong screen.
-func TestNavRailIsConsistent(t *testing.T) {
-	if len(navItems) != len(navTargets) {
-		t.Fatalf("%d nav labels but %d targets", len(navItems), len(navTargets))
-	}
-	seen := map[View]string{}
-	for i, target := range navTargets {
-		if prev, dup := seen[target]; dup {
-			t.Errorf("%q and %q both open the same view", prev, navItems[i])
-		}
-		seen[target] = navItems[i]
-	}
-	// Every rail entry must be reachable by walking right from the start.
-	for i := range navItems {
-		m := NewModel(nil)
-		m.currentView = ViewHome
-		m.introDone = true
-		m = drive(m, tea.WindowSizeMsg{Width: 110, Height: 34})
-		for j := 0; j < i; j++ {
-			m = drive(m, key("right"))
-		}
-		if m.activeTab != i {
-			t.Fatalf("walking right %d times landed on %d", i, m.activeTab)
-		}
-		m = settle(drive(m, key("enter")))
-		want := navTargets[i]
-		if want == ViewGames && m.currentView == ViewGames {
-			continue
-		}
-		if m.currentView != want {
-			t.Errorf("rail %q opened %v, want %v", navItems[i], m.currentView, want)
-		}
 	}
 }

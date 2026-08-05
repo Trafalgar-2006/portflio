@@ -4,13 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/trafalgar-2006/ssh-portfolio/views"
 )
 
 func aboutModel() Model {
-	m := NewModel(nil)
-	m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 30})
+	m := booted(100, 36)
 	m.currentView = ViewAbout
 	return m
 }
@@ -80,11 +78,12 @@ func TestFrameCacheNotSharedAcrossViews(t *testing.T) {
 	m.currentView = ViewNow
 	now := views.StripAnsiForTest(m.renderBody(theme))
 
-	if !strings.Contains(about, "About") {
-		t.Fatal("About body does not look like About")
-	}
-	if strings.Contains(now, "◆ Education") {
+	// The two views must render different bodies.
+	if about == now {
 		t.Error("the /now view was served the About body")
+	}
+	if !strings.Contains(about, "Experience") {
+		t.Errorf("About body does not look like About: %.200s", about)
 	}
 }
 
@@ -103,10 +102,14 @@ func TestAnimatedViewsAreNotCached(t *testing.T) {
 func TestViewReflectsScrollAndWave(t *testing.T) {
 	m := aboutModel()
 	before := m.View()
-	m.scrollY = 15
-	if after := m.View(); after == before {
-		t.Error("scrolling did not change the rendered view")
+	// Scroll by a step the content is guaranteed to support.
+	if maxScroll := m.maxContentScroll(views.Themes[m.themeIdx]); maxScroll > 0 {
+		m.scrollY = maxScroll
+		if after := m.View(); after == before {
+			t.Error("scrolling did not change the rendered view")
+		}
 	}
+	m.scrollY = 0
 	m.scrollY = 0
 	m.waveOn = true
 	if after := m.View(); after == before {

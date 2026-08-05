@@ -146,3 +146,29 @@ func wrapWidth(text string, maxWidth int) string {
 
 // StripAnsiForTest exposes stripAnsi to tests in other packages.
 func StripAnsiForTest(s string) string { return stripAnsi(s) }
+
+// Small numeric helpers used across the view layer.
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func clampInt(v, lo, hi int) int {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}
