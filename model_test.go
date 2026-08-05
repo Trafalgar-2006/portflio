@@ -69,9 +69,9 @@ func TestViewFitsTerminalHeight(t *testing.T) {
 		m.currentView = ViewHome
 		m = drive(m, tea.WindowSizeMsg{Width: 100, Height: h})
 		for _, nav := range [][]tea.Msg{
-			{key("enter")},                              // Projects
-			{key("right"), key("enter")},                // About
-			{key("right"), key("right"), key("enter")},  // Contacts
+			{key("enter")},                             // Projects
+			{key("right"), key("enter")},               // About
+			{key("right"), key("right"), key("enter")}, // Contacts
 		} {
 			mm := settle(drive(m, nav...))
 			got := strings.Count(mm.View(), "\n") + 1
@@ -200,7 +200,7 @@ func TestMatrixRebuildsOnResize(t *testing.T) {
 	for i, ln := range strings.Split(strings.TrimRight(m.View(), "\n"), "\n") {
 		if w := len([]rune(views.StripAnsiForTest(ln))); w != 200 {
 			t.Fatalf("rendered row %d is %d columns wide, want 200", i, w)
-			}
+		}
 	}
 }
 
@@ -303,17 +303,18 @@ func TestScreensaverMouseInteraction(t *testing.T) {
 	}
 }
 
-// The splatter transition must always complete and land on the target view —
-// a stalled transition would freeze navigation.
-func TestSplatterTransitionAlwaysLands(t *testing.T) {
+// Navigation must be INSTANT: one keypress, one frame, you're there.
+// Regression guard for the particle-splatter transition that used to sit
+// between the visitor and every screen they asked for.
+func TestNavigationIsInstant(t *testing.T) {
 	targets := []struct {
 		keys []tea.Msg
 		want View
 	}{
 		{[]tea.Msg{key("enter")}, ViewProjects},
 		{[]tea.Msg{key("right"), key("enter")}, ViewAbout},
-		{[]tea.Msg{key("right"), key("right"), key("enter")}, ViewContacts},
-		{[]tea.Msg{key("right"), key("right"), key("right"), key("enter")}, ViewResume},
+		{[]tea.Msg{key("right"), key("right"), key("enter")}, ViewResume},
+		{[]tea.Msg{key("right"), key("right"), key("right"), key("enter")}, ViewContacts},
 	}
 	for _, tc := range targets {
 		m := NewModel(nil)
@@ -321,21 +322,17 @@ func TestSplatterTransitionAlwaysLands(t *testing.T) {
 		m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 30})
 		m = drive(m, tc.keys...)
 
-		// Pump until the transition finishes, bounded.
-		frames := 0
-		for (m.splatterOn || m.wipePhase != 0) && frames < 300 {
-			nm, _ := m.Update(tickMsg{})
-			m = nm.(Model)
-			if lines := strings.Split(m.View(), "\n"); len(lines) > 30 {
-				t.Fatalf("transition frame %d overflowed: %d rows", frames, len(lines))
-			}
-			frames++
+		// No ticks pumped: the view must already be correct.
+		if m.currentView != tc.want {
+			t.Errorf("navigation was not instant — landed on %v, want %v", m.currentView, tc.want)
 		}
 		if m.splatterOn || m.wipePhase != 0 {
-			t.Fatalf("transition to %v never completed", tc.want)
+			t.Errorf("a blocking transition is still in the navigation path "+
+				"(splatterOn=%v wipePhase=%d)", m.splatterOn, m.wipePhase)
 		}
-		if m.currentView != tc.want {
-			t.Errorf("landed on %v, want %v", m.currentView, tc.want)
+		// And the very first frame must be sane.
+		if lines := strings.Split(m.View(), "\n"); len(lines) > 30 {
+			t.Fatalf("first frame overflowed: %d rows", len(lines))
 		}
 	}
 }
@@ -427,5 +424,41 @@ func TestZeroSizeWindowFallsBack(t *testing.T) {
 	m = drive(m, tea.WindowSizeMsg{Width: 150, Height: 50})
 	if m.width != 150 || m.height != 50 {
 		t.Errorf("valid size not applied: %dx%d", m.width, m.height)
+	}
+}
+
+// The rail's labels and its targets must stay in lockstep — a mismatch would
+// silently open the wrong screen.
+func TestNavRailIsConsistent(t *testing.T) {
+	if len(navItems) != len(navTargets) {
+		t.Fatalf("%d nav labels but %d targets", len(navItems), len(navTargets))
+	}
+	seen := map[View]string{}
+	for i, target := range navTargets {
+		if prev, dup := seen[target]; dup {
+			t.Errorf("%q and %q both open the same view", prev, navItems[i])
+		}
+		seen[target] = navItems[i]
+	}
+	// Every rail entry must be reachable by walking right from the start.
+	for i := range navItems {
+		m := NewModel(nil)
+		m.currentView = ViewHome
+		m.introDone = true
+		m = drive(m, tea.WindowSizeMsg{Width: 110, Height: 34})
+		for j := 0; j < i; j++ {
+			m = drive(m, key("right"))
+		}
+		if m.activeTab != i {
+			t.Fatalf("walking right %d times landed on %d", i, m.activeTab)
+		}
+		m = settle(drive(m, key("enter")))
+		want := navTargets[i]
+		if want == ViewGames && m.currentView == ViewGames {
+			continue
+		}
+		if m.currentView != want {
+			t.Errorf("rail %q opened %v, want %v", navItems[i], m.currentView, want)
+		}
 	}
 }

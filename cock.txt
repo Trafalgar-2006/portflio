@@ -1,0 +1,64 @@
+
+===== 120x34 =====
+╭──────────────────────╮╭─ WHO ────────────────────────────────────────╮╭─ NOW ────────────────────────────────────────╮
+│ MOHITH               ││ ML Engineer · Full-Stack Developer · Builder ││ building ▸ EmbedGen — LLM fine-tuning on em… │
+│ AKSHAY               ││                                              ││          ▸ Autonomous trading agent (paper … │
+│ DUGGIRALA            ││ is an engineer, builder & creator who turns  ││          ▸ This SSH portfolio — always iter… │
+│ Bengaluru, Karnatak… ││ ideas into products.                         ││ learning ▸ Distributed systems & consensus … │
+│                      ││                                              ││          ▸ Rust for embedded targets         │
+│ NAVIGATE             ││                                              ││          ▸ Advanced quantization — AWQ, GPTQ │
+│ ▸ Projects           ││ last push "feat: cockpit" · 2h ago           ││                                              │
+│   About              │╰──────────────────────────────────────────────╯╰──────────────────────────────────────────────╯
+│   Resume             │╭─ WORK · 7 ───────────────────────────────────────────────────────────────────────────────────╮
+│   Now                ││ ◐ EmbedGen — Embedded Systems LLM                                                            │
+│   Guestbook          ││     Custom LLM fine-tuned on embedded-systems codebases using LoRA adapters.                 │
+│   Games              ││ ◇ ISRO LEOS — Sim-to-Real Vision                                          ⚡22 FPS real-time  │
+│                      ││     Synthetic data generation using BlenderProc for 6,000+ satellite imag…                   │
+│                      ││ ● Autonomous Trading System                                                                  │
+│                      ││     AI-driven swing trader with market-wide signal generation, paper trading via Alpaca API… │
+│                      ││ ● Webcraft Studios Platform                                                                  │
+│                      ││     Full digital agency platform with SEO-driven architecture, scalable AI pipelines, and p… │
+│                      ││ ◇ Bird Sound Species Detector                                                ⚡90%+ accuracy  │
+│                      ││     CNN-based audio classifier for bird species identification using spectro…                │
+│                      ││ ◇ Frog Call Classifier                                                                       │
+│                      ││     ML pipeline for frog species identification across 803+ species using MFCC-based featur… │
+│                      ││ ● SSH Portfolio (this one)                                                                   │
+│                      ││     This portfolio — an interactive TUI accessible over SSH from anywhere in the world.      │
+│                      ││ ⏎ open · / search anything · ? for every key                                                 │
+│                      │╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+│ ──────────────────── │╭─ AMBIENT · plasma ───────────────────────────────────────────────────────────────────────────╮
+│ online   3           ││ @@@@@@@@@@@%%%%%###***+++===-----:::::::::::-----====+++****#####%%%%%%%%%%%%%%######******* │
+│ latency  14ms        ││ @@@@@@@@@@@%%%%####***+++===-----:::::::::::----====+++****####%%%%%%%%%%%%%%%%%%#####****** │
+│ session  A1B2-C3D4   ││ @@@@@@@@@@@%%%%###***+++====----:::::::::::-----===++++***####%%%%%%%%%%%%%%%%%%%######***** │
+│ up       02:14       ││ @@@@@@@@@@%%%%###***++++===-----:::::::::::----====+++****###%%%%%%%@@@@@@%%%%%%%######***** │
+│                      ││ @@@@@@@@%%%%%###***++++===----::::::::::::-----====+++***####%%%%%%@@@@@@@%%%%%%%#####*****+ │
+╰──────────────────────╯╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+  ? help   / search   ⏎ open   t theme   s fx   q quit                                                         dracula  
+
+===== 90x26 =====
+╭──────────────────────╮╭─ WHO ─────────────────────────╮╭─ NOW ─────────────────────────╮
+│ MOHITH               ││ ML Engineer · Full-Stack Dev… ││ building ▸ EmbedGen — LLM fi… │
+│ AKSHAY               ││                               ││          ▸ Autonomous tradin… │
+│ DUGGIRALA            ││ is an engineer, builder &     ││          ▸ This SSH portfoli… │
+│ Bengaluru, Karnatak… ││ creator who turns ideas into  ││ learning ▸ Distributed syste… │
+│                      ││ products.                     ││          ▸ Rust for embedded… │
+│ NAVIGATE             ││ last push "feat: cockpit" · … ││          ▸ Advanced quantiza… │
+│ ▸ Projects           │╰───────────────────────────────╯╰───────────────────────────────╯
+│   About              │╭─ WORK · 7 ─────────────────────────────────────────────────────╮
+│   Resume             ││ ◐ EmbedGen — Embedded Systems LLM                              │
+│   Now                ││     Custom LLM fine-tuned on embedded-systems codebases using… │
+│   Guestbook          ││ ◇ ISRO LEOS — Sim-to-Real Vision            ⚡22 FPS real-time  │
+│   Games              ││     Synthetic data generation using Blender…                   │
+│                      ││ ● Autonomous Trading System                                    │
+│                      ││     AI-driven swing trader with market-wide signal generation… │
+│                      ││ ● Webcraft Studios Platform                                    │
+│                      ││     Full digital agency platform with SEO-driven architecture… │
+│                      ││ ◇ Bird Sound Species Detector                  ⚡90%+ accuracy  │
+│ ──────────────────── ││     CNN-based audio classifier for bird specie…                │
+│ online   3           ││ ◇ Frog Call Classifier                                         │
+│ latency  14ms        ││     ML pipeline for frog species identification across 803+ s… │
+│ session  A1B2-C3D4   ││ ● SSH Portfolio (this one)                                     │
+│ up       02:14       ││     This portfolio — an interactive TUI accessible over SSH f… │
+│                      ││ ⏎ open · / search anything · ? for every key                   │
+╰──────────────────────╯╰────────────────────────────────────────────────────────────────╯
+  ? help   / search   ⏎ open   t theme   s fx   q quit                           dracula  
