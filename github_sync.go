@@ -63,6 +63,25 @@ type ghRepo struct {
 	PushedAt    time.Time `json:"pushed_at"`
 }
 
+// excludedRepos is the set of repo names the sync worker must not publish,
+// from GITHUB_EXCLUDE (comma-separated, case-insensitive).
+//
+// Auto-sync otherwise puts every public repo on the portfolio, including
+// scratch workspaces and one-off experiments. This is the opt-out.
+func excludedRepos() map[string]bool {
+	raw := os.Getenv("GITHUB_EXCLUDE")
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	out := map[string]bool{}
+	for _, name := range strings.Split(raw, ",") {
+		if n := strings.ToLower(strings.TrimSpace(name)); n != "" {
+			out[n] = true
+		}
+	}
+	return out
+}
+
 func envOr(key, fallback string) string {
 	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
 		return v
@@ -193,9 +212,13 @@ func fetchRepos(ctx context.Context, user string) ([]ghRepo, string, error) {
 		if len(page1) == 0 {
 			break
 		}
+		excluded := excludedRepos()
 		for _, r := range page1 {
 			if r.Fork || r.Archived || r.Private {
 				continue // forks and archives aren't portfolio material
+			}
+			if excluded[strings.ToLower(r.Name)] {
+				continue // scratch/workspace repos you don't want on the site
 			}
 			all = append(all, r)
 		}

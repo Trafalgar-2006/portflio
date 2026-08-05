@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -124,10 +125,7 @@ func runSSHServer() {
 	// HTTP server: web portfolio at / and health check at /health.
 	// Most PaaS platforms (Railway, Render, Fly, Cloud Run) inject the port to
 	// bind as $PORT — honour it, or the health check never comes up.
-	httpPort := os.Getenv("PORT")
-	if httpPort == "" {
-		httpPort = "8080"
-	}
+	httpPort := resolveHTTPPort(os.Getenv("PORT"), port)
 
 	go func() {
 		mux := http.NewServeMux()
@@ -143,6 +141,11 @@ func runSSHServer() {
 			w.Header().Set("Cache-Control", "public, max-age=3600")
 			w.Write(data)
 		})
+
+		// Live content for the web portfolio, so the page renders the same
+		// projects the SSH TUI does — including GitHub-synced ones — instead
+		// of a hardcoded copy that drifts.
+		mux.HandleFunc("/api/content", handleAPIContent)
 
 		// Health check for UptimeRobot / Railway. Returns JSON so the monitor
 		// carries useful signal (uptime, build, live sessions) rather than "OK".
@@ -163,10 +166,14 @@ func runSSHServer() {
 
 		addr := net.JoinHostPort("", httpPort)
 		log.Printf("Web portfolio + health check listening on %s", addr)
-		// Don't swallow this: if the port is taken the health check silently
-		// dies and uptime monitoring reports the whole service as down.
+		// Report loudly, but do NOT exit. This goroutine used to call
+		// log.Fatalf, which killed the whole process — including a perfectly
+		// healthy SSH server — and on a platform that restarts on exit that
+		// turns a degraded web server into a permanent crash loop.
+		// A portfolio still reachable over SSH beats one that's down entirely.
 		if err := http.ListenAndServe(addr, mux); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("HTTP server error: %v", err)
+			log.Printf("ERROR: web server stopped: %v", err)
+			log.Printf("ERROR: the web portfolio and /health are DOWN; SSH is unaffected and still serving")
 		}
 	}()
 
@@ -186,6 +193,34 @@ func runSSHServer() {
 	if err := s.Shutdown(ctx); err != nil {
 		log.Fatalf("Could not shutdown server: %v", err)
 	}
+}
+
+// resolveHTTPPort decides which port the web server binds, given the raw
+// $PORT value and the port SSH has already claimed.
+//
+// The two listeners cannot share a port. Configs that predate the SSH_PORT
+// split often set PORT to the SSH port (the old README told people to), and
+// taking that literally makes the HTTP bind fail on every boot. Detect it here
+// and step aside instead, so a stale environment variable degrades the web
+// server rather than taking the whole service down.
+func resolveHTTPPort(rawPort, sshPort string) string {
+	httpPort := strings.TrimSpace(rawPort)
+	if httpPort == "" {
+		httpPort = "8080"
+	}
+	if httpPort != sshPort {
+		return httpPort
+	}
+
+	fallback := "8080"
+	if fallback == sshPort {
+		fallback = "8081"
+	}
+	log.Printf("WARNING: PORT (%s) is the same as SSH_PORT (%s); they cannot share a listener. "+
+		"Serving HTTP on :%s instead. Set PORT to a different value — on Railway the web "+
+		"proxy routes to PORT, so leave it at 8080 and keep SSH_PORT=%s.",
+		httpPort, sshPort, fallback, sshPort)
+	return fallback
 }
 
 // visitorMsg carries the current visitor count to the model

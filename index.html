@@ -1264,6 +1264,8 @@
       // Bug 2 fix: animate projects on initial load, not just on tab click
       setTimeout(animProjects, 120);
       fetchCommit();
+      // Replace the fallback list with the live one from the server.
+      loadLiveContent();
     }
 
     // ═══ BRAILLE PORTRAIT (text, mirrors SSH TUI) ═══
@@ -1309,8 +1311,14 @@
     }
 
     // ═══ PROJECTS DATA ═══
-    // Mirrors content.yaml (the SSH TUI source of truth) — keep in sync.
-    const PROJECTS = [
+    // FALLBACK ONLY. The live list is fetched from /api/content at load, so
+    // this page shows the same projects as the SSH TUI — including any the
+    // GitHub sync worker has added — without a rebuild.
+    //
+    // This array is what renders if the fetch fails or the file is opened
+    // directly from disk, so the page is never empty. It does not need to be
+    // kept perfectly in sync; content.yaml is the source of truth.
+    let PROJECTS = [
       {
         title: 'EmbedGen — Domain-Specific Code LLM', status: 'wip', label: 'WIP', hl: '',
         desc: 'Built a 62M-parameter transformer from scratch trained on embedded-systems C/C++ codebases. Custom BPE tokeniser (32k vocab), MiniHash LSH deduplication, multi-head attention with RoPE + RMSNorm. Quantized to ONNX FP16 for edge deployment. EmbedGen outperforms CodeLLaMA-7B (80x larger) on EmbedEval — a domain-specific benchmark across 10 embedded categories (GPIO, UART, DMA, FreeRTOS, SPI, ADC, Timers, Interrupts). Ships as a VS Code extension with C/C++ autocomplete.',
@@ -1355,7 +1363,7 @@
       },
       {
         title: 'SSH Portfolio (this one)', status: 'live', label: 'Live', hl: '',
-        desc: 'An interactive TUI portfolio served over raw SSH — no browser, no JavaScript. Built in Go with Bubbletea and Wish. Matrix rain intro, fake boot sequence, 4 colour themes, split-pane projects view, live visitor counter, jittering ping display, decrypt-reveal animations, vim motions, and smooth lerp transitions. You\'re looking at it right now.',
+        desc: 'An interactive TUI portfolio served over raw SSH — no browser, no JavaScript. Built in Go with Bubbletea and Wish. Matrix rain intro, fake boot sequence, 5 colour themes, split-pane projects view, live visitor counter, jittering ping display, decrypt-reveal animations, vim motions, and smooth lerp transitions. You\'re looking at it right now.',
         tags: ['Go', 'Bubbletea', 'Docker', 'Wish', 'SSH'], github: 'github.com/trafalgar-2006/portfolio'
       },
     ];
@@ -1380,6 +1388,35 @@
       </div>`;
         list.appendChild(div);
       });
+    }
+
+    // ═══ LIVE CONTENT ═══
+    // Pull the real project list from the server. Everything here is
+    // best-effort: any failure leaves the fallback array on screen.
+    async function loadLiveContent() {
+      try {
+        const res = await fetch('/api/content', { cache: 'no-cache' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !Array.isArray(data.projects) || data.projects.length === 0) return;
+
+        // Trust the shape, but don't let a malformed entry blank the page.
+        PROJECTS = data.projects.map(p => ({
+          title: String(p.title || 'Untitled'),
+          status: ['live', 'wip', 'research'].includes(p.status) ? p.status : 'wip',
+          label: String(p.label || ''),
+          hl: String(p.hl || ''),
+          desc: String(p.desc || ''),
+          tags: Array.isArray(p.tags) ? p.tags.map(String) : [],
+          github: String(p.github || ''),
+          auto: !!p.auto,
+        }));
+        renderProjects();
+        if (activeTab === 'projects') animProjects();
+      } catch (_) {
+        // Offline, opened as a file:// URL, or the API is down —
+        // the fallback list is already rendered.
+      }
     }
 
     // ═══ TABS ═══

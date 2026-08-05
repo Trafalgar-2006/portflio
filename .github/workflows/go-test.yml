@@ -42,7 +42,7 @@ jobs:
         run: |
           # Only the files this project actively formats; the older views files
           # use a deliberate compact style that gofmt would rewrite wholesale.
-          unformatted=$(gofmt -l env.go main.go stats.go session.go guestbook.go \
+          unformatted=$(gofmt -l env.go api.go main.go stats.go session.go guestbook.go \
             github_sync.go wakatime.go screensaver.go \
             views/fx.go views/fx_screen.go views/fx_text.go views/games.go \
             views/github.go views/guestbook.go views/admin.go views/neofetch.go \

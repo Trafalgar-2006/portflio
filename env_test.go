@@ -193,7 +193,7 @@ func TestEnvExampleIsCompleteAndParses(t *testing.T) {
 	// Every variable the code reads.
 	required := []string{
 		"SSH_ENABLED", "HOST", "SSH_PORT", "PORT", "SSH_HOST_KEY",
-		"GITHUB_USER", "GITHUB_TOKEN", "GITHUB_SYNC", "SYNC_INTERVAL",
+		"GITHUB_USER", "GITHUB_TOKEN", "GITHUB_SYNC", "SYNC_INTERVAL", "GITHUB_EXCLUDE",
 		"GUESTBOOK_PATH", "GUESTBOOK_MAX",
 		"ADMIN_SSH_KEYS",
 		"WAKATIME_API_KEY", "WAKATIME_INTERVAL",
