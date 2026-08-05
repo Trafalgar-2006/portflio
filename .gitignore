@@ -3,3 +3,8 @@
 *.exe
 *.exe~
 new/
+
+# render snapshots from dev
+*snap*.txt
+cock.txt
+final.txt
