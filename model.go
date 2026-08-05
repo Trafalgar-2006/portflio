@@ -1107,9 +1107,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // footerHeight is the number of rows renderFooterBar occupies.
 const footerHeight = 2
 
+// showFooter reports whether the terminal is tall enough to spend two rows on
+// the status bar. Below that the body gets the whole screen — drawing it
+// anyway would push the frame past the terminal and scroll the display.
+func (m Model) showFooter() bool {
+	return m.height > footerHeight+1
+}
+
 // viewportHeight is how many rows the body may use once the footer is drawn.
 func (m Model) viewportHeight() int {
-	h := m.height - footerHeight
+	h := m.height
+	if m.showFooter() {
+		h -= footerHeight
+	}
 	if h < 1 {
 		h = 1
 	}
@@ -1246,9 +1256,11 @@ func (m Model) View() string {
 
 	content := m.renderBody(theme)
 
-	// Intro screens are already sized to the terminal and have no footer.
+	// Intro screens carry no footer, but still have to fit: the boot and
+	// alert screens emit a fixed number of rows regardless of terminal size.
 	if m.currentView < ViewHome {
-		return content
+		clipped, _ := views.Clip(m.renderer, content, m.height, 0, theme)
+		return clipped
 	}
 
 	// Sine-wave distortion filter ([w] toggles it).
@@ -1281,7 +1293,9 @@ func (m Model) View() string {
 		content = strings.Join(lines, "\n")
 	}
 
-	content += m.renderFooterBar()
+	if m.showFooter() {
+		content += m.renderFooterBar()
+	}
 
 	// Theme flash overlay — a brief bright flicker on theme switch
 	if m.themeFlash > 0 {

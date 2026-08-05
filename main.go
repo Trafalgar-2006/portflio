@@ -19,11 +19,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
-	"github.com/muesli/termenv"
 	"github.com/charmbracelet/wish"
 	"github.com/charmbracelet/wish/activeterm"
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/logging"
+	"github.com/muesli/termenv"
 	"github.com/trafalgar-2006/ssh-portfolio/config"
 	"github.com/trafalgar-2006/ssh-portfolio/views"
 	gossh "golang.org/x/crypto/ssh"
@@ -39,6 +39,11 @@ var startedAt = time.Now()
 var indexHTML embed.FS
 
 func main() {
+	// Must come first: SSH_ENABLED is read a few lines below and decides the
+	// whole execution path, and WAKATIME_API_KEY / GITHUB_SYNC are read once
+	// at startup — anything not in place by then stays off for good.
+	initEnv()
+
 	// Load content.yaml — falls back to hardcoded data if file not found
 	if err := config.Load("content.yaml"); err != nil {
 		log.Printf("content.yaml not found, using hardcoded content: %v", err)

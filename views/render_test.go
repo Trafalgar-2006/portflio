@@ -322,3 +322,33 @@ func TestProjectListWindowsAndFollowsCursor(t *testing.T) {
 		}
 	}
 }
+
+// The timeline must render at every width. Regression for a negative slice
+// bound: the message-truncation budget (inner-25) went negative on any
+// terminal narrower than ~31 columns, panicking the whole session.
+func TestTimelineRendersAtEveryWidth(t *testing.T) {
+	cs := make([]Commit, 12)
+	for i := range cs {
+		cs[i] = Commit{
+			SHA:     fmt.Sprintf("%040d", i),
+			Message: "a reasonably long commit message that will need truncating",
+		}
+	}
+	r := lipgloss.DefaultRenderer()
+	for w := 0; w <= 140; w++ {
+		for _, h := range []int{0, 1, 5, 24, 60} {
+			w, h := w, h
+			func() {
+				defer func() {
+					if rec := recover(); rec != nil {
+						t.Fatalf("RenderTimeline panicked at %dx%d: %v", w, h, rec)
+					}
+				}()
+				for _, cursor := range []int{-3, 0, 5, len(cs) - 1, len(cs) + 9} {
+					RenderTimeline(r, w, h, cursor, cs, ThemeDracula)
+				}
+				RenderTimeline(r, w, h, 0, nil, ThemeDracula) // empty history
+			}()
+		}
+	}
+}

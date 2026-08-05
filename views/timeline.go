@@ -132,9 +132,19 @@ func RenderTimeline(r *lipgloss.Renderer, width, height, cursor int, commits []C
 			marker = goldS.Render("▸ ")
 			style = textS
 		}
+		// Budget for the "▸ " marker and the short SHA. The available width
+		// goes negative on a narrow terminal, so clamp before slicing —
+		// `[:negative]` panics.
+		maxMsg := inner - 24
+		if maxMsg < 1 {
+			maxMsg = 1
+		}
 		msg := firstLine(commits[i].Message)
-		if len([]rune(msg)) > inner-24 {
-			msg = string([]rune(msg)[:inner-25]) + "…"
+		if r := []rune(msg); len(r) > maxMsg {
+			msg = string(r[:maxMsg-1]) + "…"
+			if maxMsg == 1 {
+				msg = "…"
+			}
 		}
 		b.WriteString("  " + marker + dimS.Render(shortSHA(commits[i].SHA)+" ") + style.Render(msg) + "\n")
 	}
