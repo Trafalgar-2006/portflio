@@ -1,769 +1,422 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dracula">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description"
-    content="Mohith Akshay Duggirala — ML engineer, full-stack developer & founder of Webcraft Studios. Built a 62M-parameter domain-specific LLM from scratch, deployed CV systems at ISRO, and ships production software. Also available over SSH.">
-  <meta name="color-scheme" content="dark">
-  <title>Mohith Akshay Duggirala</title>
-
-  <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Mohith Akshay Duggirala — ML engineer and builder. A 62M-parameter code LLM built from scratch, computer vision at ISRO, an autonomous trading agent. Also available over SSH.">
+<meta name="color-scheme" content="dark">
+<title>Mohith Akshay Duggirala</title>
+<style>
     /* ═══════════════════════════════════════════════════════════════
-       SHARED DESIGN SYSTEM
-
-       These are the exact same five palettes the SSH TUI ships
-       (views/theme.go). One system, two renderers: the terminal draws
-       them into cells, the web draws them into a document. Switching
-       theme here does what `t` does over SSH.
+       The same five palettes the SSH TUI ships (views/theme.go).
+       This page is the terminal, rendered as a document — same
+       portrait, same flat layout, same two rules, same monospace.
        ═══════════════════════════════════════════════════════════════ */
-
     :root[data-theme="dracula"] {
-      --primary: #8BE9FD; --secondary: #FF79C6; --accent: #F1FA8C;
-      --success: #50FA7B; --warning: #FFB86C; --purple: #BD93F9;
-      --text: #F8F8F2; --dim-mid: #6272A4; --dim: #44475A; --very-dim: #565B7A;
-      --border: #6272A4; --ground: #21222C; --surface: #282A36; --raised: #313340;
+      --primary:#8BE9FD; --secondary:#FF79C6; --accent:#F1FA8C;
+      --success:#50FA7B; --warning:#FFB86C; --purple:#BD93F9;
+      --text:#F8F8F2; --dim-mid:#6272A4; --dim:#44475A;
+      --very-dim:#565B7A; --rule:#44475A; --ground:#21222C;
     }
     :root[data-theme="matrix"] {
-      --primary: #00FF41; --secondary: #00DD33; --accent: #AAFFAA;
-      --success: #00FF41; --warning: #99FF33; --purple: #00BB22;
-      --text: #CCFFCC; --dim-mid: #008822; --dim: #004411; --very-dim: #00702E;
-      --border: #006622; --ground: #000C00; --surface: #041204; --raised: #08200C;
+      --primary:#00FF41; --secondary:#00DD33; --accent:#AAFFAA;
+      --success:#00FF41; --warning:#99FF33; --purple:#00BB22;
+      --text:#CCFFCC; --dim-mid:#008822; --dim:#004411;
+      --very-dim:#00702E; --rule:#004411; --ground:#000C00;
     }
     :root[data-theme="amber"] {
-      --primary: #FFAA00; --secondary: #FF7700; --accent: #FFE066;
-      --success: #CCFF00; --warning: #FF5500; --purple: #FF9944;
-      --text: #FFD080; --dim-mid: #AA6600; --dim: #664400; --very-dim: #8A6A20;
-      --border: #885500; --ground: #0A0600; --surface: #140C02; --raised: #1E1405;
+      --primary:#FFAA00; --secondary:#FF7700; --accent:#FFE066;
+      --success:#CCFF00; --warning:#FF5500; --purple:#FF9944;
+      --text:#FFD080; --dim-mid:#AA6600; --dim:#664400;
+      --very-dim:#8A6A20; --rule:#664400; --ground:#0A0600;
     }
     :root[data-theme="nord"] {
-      --primary: #88C0D0; --secondary: #B48EAD; --accent: #EBCB8B;
-      --success: #A3BE8C; --warning: #D08770; --purple: #81A1C1;
-      --text: #ECEFF4; --dim-mid: #7A8899; --dim: #4C566A; --very-dim: #6E7A8F;
-      --border: #5E81AC; --ground: #242933; --surface: #2E3440; --raised: #3B4252;
+      --primary:#88C0D0; --secondary:#B48EAD; --accent:#EBCB8B;
+      --success:#A3BE8C; --warning:#D08770; --purple:#81A1C1;
+      --text:#ECEFF4; --dim-mid:#7A8899; --dim:#4C566A;
+      --very-dim:#6E7A8F; --rule:#4C566A; --ground:#242933;
     }
     :root[data-theme="cyberpunk"] {
-      --primary: #FF007F; --secondary: #00FFFF; --accent: #FFE600;
-      --success: #00FF88; --warning: #FF6600; --purple: #CC00FF;
-      --text: #FFFFFF; --dim-mid: #AA44AA; --dim: #550055; --very-dim: #8A4477;
-      --border: #880055; --ground: #0A000A; --surface: #140014; --raised: #1E041E;
+      --primary:#FF007F; --secondary:#00FFFF; --accent:#FFE600;
+      --success:#00FF88; --warning:#FF6600; --purple:#CC00FF;
+      --text:#FFFFFF; --dim-mid:#AA44AA; --dim:#550055;
+      --very-dim:#8A4477; --rule:#550055; --ground:#0A000A;
     }
 
     :root {
-      --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
-      --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      --measure: 66ch;
-      --gap: clamp(1rem, 2.5vw, 1.75rem);
-      --radius: 10px;
+      --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+      --cell: clamp(11px, 1.05vw, 14px);
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html { scroll-behavior: smooth; }
-    @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-      }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
+    html { scroll-behavior:smooth }
+    @media (prefers-reduced-motion:reduce) {
+      html { scroll-behavior:auto }
+      *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important }
     }
 
     body {
-      background: var(--ground);
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 16px;
-      line-height: 1.65;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-      transition: background 200ms ease, color 200ms ease;
+      background:var(--ground); color:var(--text);
+      font-family:var(--mono); font-size:var(--cell); line-height:1.6;
+      -webkit-font-smoothing:antialiased; overflow-x:hidden;
+      transition:background .2s,color .2s;
     }
-
-    /* Faint scanline texture — the one skeuomorphic nod, kept subtle. */
+    /* the faint CRT texture, same as the terminal's scanline */
     body::after {
-      content: '';
-      position: fixed; inset: 0; z-index: 9999; pointer-events: none;
-      background: repeating-linear-gradient(0deg,
-        transparent, transparent 3px, rgba(0,0,0,.13) 3px, rgba(0,0,0,.13) 4px);
-      opacity: .5;
+      content:''; position:fixed; inset:0; z-index:99; pointer-events:none;
+      background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.13) 3px,rgba(0,0,0,.13) 4px);
+      opacity:.45;
     }
 
-    a { color: var(--primary); text-underline-offset: 3px; }
-    a:focus-visible, button:focus-visible {
-      outline: 2px solid var(--primary); outline-offset: 3px; border-radius: 3px;
+    a { color:var(--primary); text-decoration:none }
+    a:hover { text-decoration:underline; text-underline-offset:3px }
+    a:focus-visible, button:focus-visible { outline:2px solid var(--primary); outline-offset:2px }
+
+    .wrap { max-width:112ch; margin:0 auto; padding:0 clamp(1rem,4vw,3rem) }
+
+    /* ── boot: the scanline, exactly as the terminal opens ── */
+    #boot {
+      position:fixed; inset:0; z-index:500; background:var(--ground);
+      transition:opacity .45s ease, visibility .45s;
+    }
+    #boot.gone { opacity:0; visibility:hidden }
+    #sweep {
+      position:absolute; left:0; right:0; height:0;
+      border-top:1px solid var(--primary);
+      box-shadow:0 0 12px var(--primary), 0 2px 0 var(--dim), 0 4px 0 var(--dim);
+      top:0;
     }
 
-    /* ── type ── */
-    .mono { font-family: var(--mono); }
-    .eyebrow {
-      font-family: var(--mono); font-size: .7rem; font-weight: 600;
-      letter-spacing: .18em; text-transform: uppercase; color: var(--dim-mid);
-    }
-    h1, h2, h3 { text-wrap: balance; font-weight: 600; line-height: 1.15; }
-    h2 { font-family: var(--mono); font-size: 1.25rem; letter-spacing: -.01em; }
-    h3 { font-size: 1.02rem; }
+    /* ── header: portrait left, identity right — no boxes ── */
+    header { padding:clamp(1.5rem,4vw,3rem) 0 1rem }
+    .hero { display:flex; gap:clamp(1.5rem,5vw,5rem); align-items:flex-start; flex-wrap:wrap }
 
-    /* ═══ INTRO — mirrors the terminal choreography ═══ */
-    #intro {
-      position: fixed; inset: 0; z-index: 500;
-      background: var(--ground);
-      display: grid; place-items: center;
-      transition: opacity .5s ease, visibility .5s;
-    }
-    #intro.done { opacity: 0; visibility: hidden; }
-    #rain {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      opacity: .55;
-    }
-    .intro-name {
-      position: relative;
-      font-family: var(--mono);
-      font-size: clamp(1.3rem, 6vw, 3rem);
-      font-weight: 700;
-      letter-spacing: .14em;
-      color: var(--primary);
-      text-shadow: 0 0 30px color-mix(in srgb, var(--primary) 45%, transparent);
-      text-align: center;
-    }
-    .intro-name span { opacity: 0; }
-    .intro-name span.on { opacity: 1; }
-    .intro-skip {
-      position: absolute; bottom: 2rem; left: 0; right: 0;
-      text-align: center; font-family: var(--mono); font-size: .72rem;
-      color: var(--very-dim);
+    #portrait {
+      font-family:var(--mono); font-size:calc(var(--cell) * .84);
+      line-height:1.05; letter-spacing:0; white-space:pre;
+      color:var(--primary); flex:0 0 auto;
+      text-shadow:0 0 14px color-mix(in srgb,var(--primary) 30%,transparent);
     }
 
-    /* ═══ SHELL ═══ */
-    #shell { opacity: 0; transition: opacity .6s ease; }
-    #shell.ready { opacity: 1; }
+    .ident { flex:1 1 22ch; padding-top:clamp(0rem,4vw,3.5rem); min-width:22ch }
+    .ident h1 {
+      font-size:calc(var(--cell) * 1.5); font-weight:700; letter-spacing:.06em;
+      color:var(--text); line-height:1.3; text-wrap:balance;
+    }
+    .ident .role { color:var(--dim-mid); margin-top:.35rem }
 
-    .wrap {
-      max-width: 1220px; margin: 0 auto;
-      padding: 0 clamp(1rem, 4vw, 2.5rem);
-    }
+    nav { margin-top:1.8rem; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.35rem 1.5rem; max-width:44ch }
+    @media (max-width:560px) { nav { grid-template-columns:repeat(2,1fr) } }
+    nav a { color:var(--dim-mid); white-space:nowrap; padding:.1rem 0 }
+    nav a::before { content:'  '; white-space:pre }
+    nav a:hover, nav a:focus-visible { color:var(--secondary); text-decoration:none }
+    nav a:hover::before, nav a:focus-visible::before { content:'▸ ' }
+    nav a.on { color:var(--primary); font-weight:700 }
+    nav a.on::before { content:'▸ ' }
 
-    /* ── top bar: the SSH command is the hero ── */
-    header.top {
-      position: sticky; top: 0; z-index: 100;
-      background: color-mix(in srgb, var(--ground) 88%, transparent);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--dim);
-    }
-    .top-in {
-      display: flex; align-items: center; gap: var(--gap);
-      padding: .8rem 0; flex-wrap: wrap;
-    }
-    .brand {
-      font-family: var(--mono); font-weight: 700; letter-spacing: .05em;
-      color: var(--text); font-size: .95rem; white-space: nowrap;
-    }
-    .brand b { color: var(--primary); }
+    /* ── the two rules, and nothing else ── */
+    hr { border:0; border-top:1px solid var(--rule); margin:1.4rem 0 }
 
-    .ssh-cmd {
-      display: inline-flex; align-items: center; gap: .6rem;
-      font-family: var(--mono); font-size: .84rem;
-      background: var(--surface); color: var(--text);
-      border: 1px solid var(--border); border-radius: 6px;
-      padding: .4rem .7rem; cursor: pointer;
-      transition: border-color 150ms, transform 150ms;
-    }
-    .ssh-cmd:hover { border-color: var(--primary); transform: translateY(-1px); }
-    .ssh-cmd .prompt { color: var(--success); }
-    .ssh-cmd .copy { color: var(--dim-mid); font-size: .72rem; }
+    /* ── content: one column, blank row between entries ── */
+    main { padding:.6rem 0 2rem; min-height:38vh }
+    section { display:none }
+    section.on { display:block }
 
-    .themes { display: flex; gap: .35rem; margin-left: auto; }
-    .swatch {
-      width: 22px; height: 22px; border-radius: 50%;
-      border: 1px solid var(--dim); cursor: pointer; padding: 0;
-      transition: transform 140ms, border-color 140ms;
+    h2 {
+      color:var(--primary); font-size:var(--cell); font-weight:700;
+      letter-spacing:.14em; text-transform:uppercase; margin:2rem 0 1rem;
     }
-    .swatch:hover { transform: scale(1.18); }
-    .swatch[aria-pressed="true"] { border-color: var(--text); transform: scale(1.18); }
+    h2:first-child { margin-top:0 }
 
-    /* ── hero ── */
-    .hero { padding: clamp(2.5rem, 7vw, 4.5rem) 0 1.5rem; }
-    .hero h1 {
-      font-family: var(--mono);
-      font-size: clamp(1.9rem, 6.5vw, 3.6rem);
-      letter-spacing: -.02em; color: var(--text);
-    }
-    .hero .role {
-      font-size: clamp(1rem, 2.2vw, 1.22rem);
-      color: var(--secondary); margin-top: .5rem; font-weight: 500;
-    }
-    .hero .blurb {
-      max-width: var(--measure); margin-top: 1.1rem;
-      color: var(--dim-mid); font-size: 1.02rem;
-    }
-    .hero .where { margin-top: .8rem; }
+    .entry { margin:0 0 1.9rem; padding-left:1rem }
+    .entry .hd { display:flex; gap:.7rem; align-items:baseline; flex-wrap:wrap; margin-left:-1rem }
+    .dot { width:1ch; display:inline-block }
+    .dot.live { color:var(--success) }
+    .dot.wip { color:var(--warning) }
+    .dot.research { color:var(--purple) }
+    .entry .name { color:var(--text); font-weight:700 }
+    .entry .hl { color:var(--accent) }
+    .entry p { color:var(--dim-mid); margin-top:.3rem; max-width:80ch }
+    .entry .tags { color:var(--dim); margin-top:.3rem }
+    .entry .gh { color:var(--warning); display:inline-block; margin-top:.3rem }
+    .kv { display:grid; grid-template-columns:14ch 1fr; gap:.15rem 1rem; max-width:80ch }
+    .kv dt { color:var(--dim) }
+    .kv dd { color:var(--text) }
+    .bar { display:inline-block; color:var(--dim) }
+    .bar i { font-style:normal }
+    .muted { color:var(--dim-mid) }
 
-    /* ── panel grid: the cockpit hierarchy, laid out for a document ── */
-    .grid { display: grid; gap: var(--gap); grid-template-columns: 1fr; }
-    @media (min-width: 900px) { .grid.two { grid-template-columns: 1fr 1fr; } }
-
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--dim);
-      border-radius: var(--radius);
-      padding: 1.25rem 1.35rem;
-      display: flex; flex-direction: column; gap: .85rem;
-    }
-    .panel > h2 {
-      color: var(--primary);
-      display: flex; align-items: baseline; gap: .6rem;
-    }
-    .panel > h2 .count {
-      font-size: .72rem; color: var(--dim-mid); font-weight: 500; letter-spacing: .1em;
-    }
-
-    section { padding: 1.6rem 0; }
-    section > .eyebrow { margin-bottom: .9rem; display: block; }
-
-    /* ── now list ── */
-    .now-row { display: grid; grid-template-columns: 5.5rem 1fr; gap: .7rem; align-items: baseline; }
-    .now-row + .now-row { margin-top: .35rem; }
-    .now-row .lbl { font-family: var(--mono); font-size: .72rem; color: var(--dim-mid); letter-spacing: .08em; }
-    .now-row ul { list-style: none; display: flex; flex-direction: column; gap: .25rem; }
-    .now-row li { font-size: .93rem; }
-    .now-row li::before { content: '▸ '; color: var(--success); }
-
-    /* ── work ── */
-    .work { display: flex; flex-direction: column; gap: .9rem; }
-    .proj {
-      background: var(--raised);
-      border: 1px solid transparent;
-      border-left: 2px solid var(--dim);
-      border-radius: 8px;
-      padding: .95rem 1.1rem;
-      opacity: 0; transform: translateY(10px);
-      transition: opacity .45s ease, transform .45s ease, border-color .2s;
-    }
-    .proj.in { opacity: 1; transform: none; }
-    .proj:hover { border-left-color: var(--primary); }
-    .proj[data-status="live"]     { border-left-color: var(--success); }
-    .proj[data-status="wip"]      { border-left-color: var(--warning); }
-    .proj[data-status="research"] { border-left-color: var(--purple); }
-
-    .proj-hd { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
-    .proj-name { font-weight: 600; font-size: 1.02rem; color: var(--text); }
-    .badge {
-      font-family: var(--mono); font-size: .64rem; font-weight: 700;
-      letter-spacing: .1em; text-transform: uppercase;
-      padding: .12rem .45rem; border-radius: 3px;
-      border: 1px solid currentColor;
-    }
-    .badge.live     { color: var(--success); }
-    .badge.wip      { color: var(--warning); }
-    .badge.research { color: var(--purple); }
-    .hl { font-family: var(--mono); font-size: .74rem; color: var(--accent); }
-    .auto {
-      font-family: var(--mono); font-size: .64rem; color: var(--dim-mid);
-      border: 1px dashed var(--dim); border-radius: 3px; padding: .1rem .35rem;
-    }
-    .proj-desc { color: var(--dim-mid); font-size: .93rem; margin-top: .45rem; max-width: var(--measure); }
-    .tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .6rem; }
-    .tag {
-      font-family: var(--mono); font-size: .68rem;
-      color: var(--dim-mid); border: 1px solid var(--dim);
-      border-radius: 3px; padding: .06rem .38rem;
-    }
-    .proj-gh {
-      display: inline-block; margin-top: .6rem;
-      font-family: var(--mono); font-size: .76rem; color: var(--warning);
-      text-decoration: none;
-    }
-    .proj-gh:hover { text-decoration: underline; }
-
-    /* ── about ── */
-    .roles { display: flex; flex-direction: column; gap: 1rem; }
-    .role-item { border-left: 1px solid var(--dim); padding-left: .9rem; }
-    .role-item .t { font-weight: 600; }
-    .role-item .o { color: var(--secondary); font-size: .9rem; }
-    .role-item .p { font-family: var(--mono); font-size: .72rem; color: var(--dim-mid); }
-    .role-item ul { list-style: none; margin-top: .35rem; display: flex; flex-direction: column; gap: .2rem; }
-    .role-item li { font-size: .9rem; color: var(--dim-mid); }
-    .role-item li::before { content: '▸ '; color: var(--success); }
-
-    .skills { display: flex; flex-direction: column; gap: .5rem; }
-    .skill { display: grid; grid-template-columns: 6.5rem 1fr 3rem; gap: .7rem; align-items: center; }
-    .skill .n { font-family: var(--mono); font-size: .78rem; color: var(--dim-mid); }
-    .skill .bar { height: 6px; border-radius: 3px; background: var(--dim); overflow: hidden; }
-    .skill .bar i { display: block; height: 100%; width: 0; border-radius: 3px; transition: width .9s cubic-bezier(.2,.8,.2,1); }
-    .skill .v { font-family: var(--mono); font-size: .72rem; color: var(--dim-mid); text-align: right; font-variant-numeric: tabular-nums; }
-
-    /* ── contact ── */
-    .contacts { display: grid; gap: .6rem; grid-template-columns: 1fr; }
-    @media (min-width: 640px) { .contacts { grid-template-columns: 1fr 1fr; } }
-    .contact {
-      display: flex; align-items: center; gap: .7rem;
-      background: var(--raised); border: 1px solid var(--dim);
-      border-radius: 8px; padding: .8rem 1rem;
-      text-decoration: none; color: var(--text);
-      transition: border-color 160ms, transform 160ms;
-    }
-    .contact:hover { border-color: var(--primary); transform: translateY(-2px); }
-    .contact .ic { font-family: var(--mono); color: var(--primary); font-size: .8rem; }
-    .contact .lb { font-family: var(--mono); font-size: .68rem; color: var(--dim-mid); letter-spacing: .1em; text-transform: uppercase; }
-    .contact .vl { font-size: .9rem; }
-
-    /* ── ssh callout ── */
-    .callout {
-      border: 1px solid var(--border); border-radius: var(--radius);
-      background: var(--surface); padding: 1.4rem;
-      display: flex; flex-direction: column; gap: .8rem; align-items: flex-start;
-    }
-    .term-demo {
-      width: 100%; overflow-x: auto;
-      background: var(--ground); border: 1px solid var(--dim);
-      border-radius: 8px; padding: .9rem 1rem;
-    }
-    .term-demo pre {
-      font-family: var(--mono); font-size: .72rem; line-height: 1.5;
-      color: var(--dim-mid); white-space: pre;
-    }
-    .term-demo .k { color: var(--primary); }
-    .term-demo .g { color: var(--success); }
-    .term-demo .y { color: var(--accent); }
-    .term-demo .w { color: var(--text); }
-
+    /* ── footer: heartbeat left, telemetry right ── */
     footer {
-      border-top: 1px solid var(--dim);
-      margin-top: 2rem; padding: 2rem 0 3rem;
-      color: var(--dim-mid); font-size: .84rem;
-      display: flex; gap: .8rem; flex-wrap: wrap; align-items: center;
+      border-top:1px solid var(--rule); padding:.7rem 0 2rem;
+      display:flex; gap:1rem; align-items:baseline; flex-wrap:wrap;
+      color:var(--dim-mid);
     }
+    #beat { color:var(--success); width:1ch; display:inline-block }
+    .tele { margin-left:auto; color:var(--dim) }
+    .themes { display:flex; gap:.35rem; align-items:center }
+    .sw { width:14px; height:14px; border-radius:50%; border:1px solid var(--dim); cursor:pointer; padding:0 }
+    .sw[aria-pressed="true"] { border-color:var(--text); transform:scale(1.25) }
+    .sw:hover { transform:scale(1.25) }
 
-    .toast {
-      position: fixed; left: 50%; bottom: 2rem; transform: translate(-50%, 1rem);
-      background: var(--surface); color: var(--text);
-      border: 1px solid var(--primary); border-radius: 6px;
-      padding: .5rem .9rem; font-family: var(--mono); font-size: .8rem;
-      opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
-      z-index: 900;
+    .cmd {
+      color:var(--text); background:none; border:0; padding:0;
+      font:inherit; cursor:pointer;
     }
-    .toast.show { opacity: 1; transform: translate(-50%, 0); }
-  </style>
+    .cmd .p { color:var(--success) }
+    .cmd:hover { color:var(--primary) }
+    #toast {
+      position:fixed; left:50%; bottom:1.5rem; transform:translate(-50%,1rem);
+      background:var(--ground); border:1px solid var(--primary); color:var(--text);
+      padding:.4rem .8rem; opacity:0; pointer-events:none; transition:.25s; z-index:200;
+    }
+    #toast.on { opacity:1; transform:translate(-50%,0) }
+</style>
 </head>
-
 <body>
 
-  <!-- ═══ INTRO — the same beat as the terminal: rain, name, gone ═══ -->
-  <div id="intro">
-    <canvas id="rain"></canvas>
-    <div class="intro-name" id="introName"></div>
-    <div class="intro-skip">press any key to skip</div>
-  </div>
+<div id="boot"><div id="sweep"></div></div>
 
-  <div id="shell">
-
-    <header class="top">
-      <div class="wrap top-in">
-        <span class="brand">MOHITH<b>.</b>AKSHAY</span>
-
-        <button class="ssh-cmd" id="sshBtn" title="Copy to clipboard">
-          <span class="prompt">$</span>
-          <span>ssh mohith.is-a.dev</span>
-          <span class="copy">copy</span>
-        </button>
-
-        <div class="themes" role="group" aria-label="Colour theme">
-          <button class="swatch" data-set="dracula"   title="dracula"   aria-pressed="true"  style="background:#8BE9FD"></button>
-          <button class="swatch" data-set="matrix"    title="matrix"    aria-pressed="false" style="background:#00FF41"></button>
-          <button class="swatch" data-set="amber"     title="amber"     aria-pressed="false" style="background:#FFAA00"></button>
-          <button class="swatch" data-set="nord"      title="nord"      aria-pressed="false" style="background:#88C0D0"></button>
-          <button class="swatch" data-set="cyberpunk" title="cyberpunk" aria-pressed="false" style="background:#FF007F"></button>
-        </div>
+<div class="wrap">
+  <header>
+    <div class="hero">
+      <pre id="portrait" aria-label="Braille portrait of Mohith Akshay Duggirala"></pre>
+      <div class="ident">
+        <h1 id="nm">MOHITH AKSHAY DUGGIRALA</h1>
+        <div class="role" id="rl">ML Engineer &amp; Builder</div>
+        <nav id="nav">
+          <a href="#projects"  data-t="projects"  class="on">Projects</a>
+          <a href="#about"     data-t="about">About</a>
+          <a href="#resume"    data-t="resume">Resume</a>
+          <a href="#contact"   data-t="contact">Contact</a>
+          <a href="#now"       data-t="now">Now</a>
+          <a href="https://github.com/Trafalgar-2006/portfolio" target="_blank" rel="noopener noreferrer">Source</a>
+        </nav>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <main class="wrap">
+  <hr>
 
-      <!-- HERO -->
-      <div class="hero">
-        <h1 id="heroName">Mohith Akshay Duggirala</h1>
-        <p class="role" id="heroRole">ML Engineer · Full-Stack Developer · Builder</p>
-        <p class="blurb" id="heroBlurb">
-          I build things that think — a 62M-parameter code LLM trained from scratch,
-          computer-vision pipelines flying at ISRO, and an autonomous trading agent
-          that has been running unattended for months.
-        </p>
-        <p class="where eyebrow" id="heroWhere">Bengaluru, India</p>
+  <main>
+    <section id="projects" class="on"><h2>Work</h2><div id="work"></div></section>
+    <section id="about"><div id="bio"></div></section>
+    <section id="resume"><div id="cv"></div></section>
+    <section id="contact"><h2>Contact</h2><dl class="kv" id="contacts"></dl>
+      <p class="muted" style="margin-top:1.5rem">
+        Or say hello over SSH —
+        <button class="cmd" id="ssh2"><span class="p">$</span> ssh mohith.is-a.dev</button>
+      </p>
+    </section>
+    <section id="now"><h2>Now</h2><div id="nowlist"></div></section>
+  </main>
+
+  <footer>
+    <span id="beat">.</span>
+    <button class="cmd" id="ssh1"><span class="p">$</span> ssh mohith.is-a.dev</button>
+    <span class="themes"><button class="sw" data-set="dracula" title="dracula" aria-pressed="true" style="background:#8BE9FD"></button>
+        <button class="sw" data-set="matrix" title="matrix" aria-pressed="false" style="background:#00FF41"></button>
+        <button class="sw" data-set="amber" title="amber" aria-pressed="false" style="background:#FFAA00"></button>
+        <button class="sw" data-set="nord" title="nord" aria-pressed="false" style="background:#88C0D0"></button>
+        <button class="sw" data-set="cyberpunk" title="cyberpunk" aria-pressed="false" style="background:#FF007F"></button></span>
+    <span class="tele" id="tele"></span>
+  </footer>
+</div>
+
+<div id="toast">copied</div>
+
+<script>
+'use strict';
+const PORTRAIT = '⠀⠀⠀⠀⠀⠀⠀⢀⡄⠀⠀⠀⠀⠀⣀⢀\n⠀⠀⠀⠀⠀⢀⣼⠋⠄⡀⠀⢀⣴⣿⣟⣩⣿⠀⣀⡀\n⠀⠀⠀⠀⠀⢺⣾⣏⣰⣤⣤⣼⣿⣿⢿⣿⣿⣿⣭⣽⣻⣴⣤\n⠀⠀⠀⢰⣀⣿⣿⣿⣿⡿⣿⢿⣿⣟⣿⣿⣿⣿⣿⣿⣿⣾⢿⣷⣄\n⠀⢀⣴⣿⢯⣻⣟⣯⣽⣿⣽⣿⣿⣿⣿⣿⣝⣿⣿⣿⣿⣿⣾⡄⣷⡐⡀\n⢀⣿⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣾⣿⣿⣿⣿⣿⣿⣯⣍⠳⡄\n⠈⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣽⣷⣻⣿⣿⣻⣿⣿⣿⣿⣯⣷⡅\n⢰⣿⣿⣿⣿⣿⣯⢈⣽⠛⠫⢽⡻⢿⣿⣿⣿⣿⣿⣧⣿⣿⣿⣿⣷⢹⣗\n⢌⣿⣿⣿⣿⣿⡿⠛⠁⠀⠐⣦⣄⡑⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⣇⠀⡀\n⣾⣿⣿⣿⣿⠏⠀⠀⠰⠤⢲⣬⣿⡏⠀⠀⠙⠻⢿⣿⣿⣿⣿⣿⣿⣿⢯⣔⠃\n⡽⣿⣿⣿⡏⠀⠀⠀⠀⠀⠌⡹⠗⠉⠀⢘⢠⣗⣦⣌⠛⢿⣿⣿⣿⣿⣿⣏⠇\n⠑⢀⡈⠙⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠿⣆⡈⠙⢮⣝⢿⣿⣿⡷⡜⢀⠄\n⠀⠊⠀⠀⠀⠀⠀⠀⠀⡠⠒⠀⠀⠀⠀⠀⠈⢤⡙⢻⡆⣿⣟⣰⣿⣿⣿⡉⠁\n⠀⠀⠀⠀⠀⠀⠀⣤⠏⠀⠀⠈⢳⠀⣀⠀⠀⠀⠀⠀⠀⣿⣹⣿⣿⣿⡃\n⢸⣾⠀⠀⠀⠀⢠⣿⣀⠀⠀⠀⠻⠟⠿⠇⢸⠀⠀⠀⠘⣷⣿⣿⡿⠟⠁\n⠀⣿⠀⠀⠀⠀⠰⢿⣥⣀⣀⠈⠐⠀⡀⠀⢸⡄⠀⠀⢸⣿⡿⠋⠁\n⢠⣿⠀⠀⠀⠀⠈⠀⠻⠛⠿⣿⣶⣆⠸⣧⡾⠄⠠⢀⣿⠋\n⢰⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⣿⠟⠻⠁⠀⠀⠈⠉\n⠈⡇⠀⠀⠀⠀⠀⠀⠀⠀⢠⠀⠀⠀⠀⠁⠠⢈⠲';
+
+// ── fallback content (live data comes from /api/content) ──
+let PROJECTS = [
+  {title:'EmbedGen — Domain-Specific Code LLM',status:'wip',label:'WIP',hl:'',
+   desc:'A 62M-parameter transformer built from scratch on embedded-systems C/C++. Custom BPE tokeniser, RoPE + RMSNorm, quantised to ONNX FP16 for edge deployment.',
+   tags:['Python','PyTorch','ONNX','CUDA'],github:'github.com/trafalgar-2006/EmbedGen'},
+  {title:'ISRO LEOS — Sim-to-Real Vision',status:'research',label:'Research',hl:'22 FPS on Jetson',
+   desc:'Synthetic-to-real perception pipeline for ISRO\u2019s Low Earth Orbit Satellite lab. 6,000+ annotated images from BlenderProc; YOLOv7 on Jetson Xavier via TensorRT.',
+   tags:['BlenderProc','YOLOv7','TensorRT'],github:''},
+  {title:'Autonomous Trading System',status:'live',label:'Live',hl:'',
+   desc:'AI swing-trading agent generating signals across the US equity market, executing paper trades via Alpaca with position sizing and stop-loss logic.',
+   tags:['Python','SQLite','Alpaca API'],github:'github.com/trafalgar-2006/autonomous-trading-agent'},
+];
+let CONTACTS = [
+  {label:'Email',value:'d.mohithakshay@gmail.com'},
+  {label:'LinkedIn',value:'linkedin.com/in/dmohithakshay'},
+  {label:'GitHub',value:'github.com/trafalgar-2006'},
+  {label:'Website',value:'webcraftstudios.co.in'},
+];
+const ROLES = [
+  {t:'Computer Vision Intern',o:'ISRO – LEOS',p:'Dec 2025 – Jan 2026',
+   b:['BlenderProc pipeline → 6,000+ COCO/YOLO annotated images','YOLOv7 on Jetson Xavier via TensorRT — 22 FPS real-time','GAN domain adaptation to close the sim-to-real gap']},
+  {t:'Founder & Lead Engineer',o:'Webcraft Studios',p:'Jan 2025 – Present',
+   b:['Digital agency, multiple international SaaS clients in year one']},
+  {t:'Software Engineering Intern',o:'SenseOps Tech Solutions',p:'May – Jul 2025',
+   b:['Custom UDP/TCP packet analyser for a vibration sensor network']},
+];
+const SKILLS = [
+  {n:'Python',v:95,c:'primary'},{n:'Go',v:82,c:'primary'},{n:'TypeScript',v:75,c:'primary'},
+  {n:'PyTorch',v:88,c:'secondary'},{n:'YOLOv7',v:85,c:'secondary'},{n:'TensorRT',v:72,c:'secondary'},
+  {n:'React',v:80,c:'purple'},{n:'Docker',v:83,c:'success'},{n:'AWS',v:68,c:'success'},
+];
+const NOW = {
+  building:['EmbedGen — LLM fine-tuning on embedded-systems code','Autonomous trading agent (paper trading, live)','This portfolio — always iterating'],
+  learning:['Distributed systems & consensus (Raft)','Rust for embedded targets','Advanced quantisation — AWQ, GPTQ'],
+  reading:['"Designing Data-Intensive Applications" — Kleppmann','"The Pragmatic Programmer" — Hunt & Thomas'],
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ── theme, matching `t` in the terminal ──
+function setTheme(n) {
+  document.documentElement.setAttribute('data-theme', n);
+  document.querySelectorAll('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.set === n)));
+  try { localStorage.setItem('theme', n) } catch (_) {}
+}
+document.querySelectorAll('.sw').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.set)));
+try { const s = localStorage.getItem('theme'); if (s) setTheme(s) } catch (_) {}
+
+// ── copy the ssh command ──
+function copySSH() {
+  const cmd = 'ssh mohith.is-a.dev';
+  const done = () => { const t=$('#toast'); t.textContent='copied — paste it in your terminal';
+    t.classList.add('on'); setTimeout(()=>t.classList.remove('on'), 2200); };
+  if (navigator.clipboard) navigator.clipboard.writeText(cmd).then(done).catch(done);
+  else { const a=document.createElement('textarea'); a.value=cmd; document.body.appendChild(a);
+    a.select(); try{document.execCommand('copy')}catch(_){} a.remove(); done(); }
+}
+$('#ssh1').addEventListener('click', copySSH);
+$('#ssh2').addEventListener('click', copySSH);
+
+// ── tabs, same nav model as the terminal ──
+function show(id) {
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === id));
+  document.querySelectorAll('nav a[data-t]').forEach(a => a.classList.toggle('on', a.dataset.t === id));
+}
+document.querySelectorAll('nav a[data-t]').forEach(a =>
+  a.addEventListener('click', e => { e.preventDefault(); show(a.dataset.t); }));
+
+// ── render ──
+const DOT = {live:'●', wip:'◐', research:'◇'};
+function work() {
+  $('#work').innerHTML = PROJECTS.map(p => `
+    <div class="entry">
+      <div class="hd">
+        <span class="dot ${esc(p.status)}">${DOT[p.status] || '◇'}</span>
+        <span class="name">${esc(p.title)}</span>
+        ${p.hl ? `<span class="hl">⚡ ${esc(p.hl)}</span>` : ''}
       </div>
+      <p>${esc(p.desc)}</p>
+      ${p.tags && p.tags.length ? `<div class="tags">${p.tags.map(esc).join('  ·  ')}</div>` : ''}
+      ${p.github ? `<a class="gh" href="https://${esc(p.github)}" target="_blank" rel="noopener noreferrer">→ ${esc(p.github)}</a>` : ''}
+    </div>`).join('');
+}
+function bio() {
+  $('#bio').innerHTML = '<h2>Experience</h2>' + ROLES.map(r => `
+    <div class="entry">
+      <div class="hd"><span class="name">${esc(r.t)}</span></div>
+      <p style="color:var(--secondary)">${esc(r.o)} <span class="muted">${esc(r.p)}</span></p>
+      ${r.b.map(x => `<p>▸ ${esc(x)}</p>`).join('')}
+    </div>`).join('') +
+    '<h2>Education</h2><div class="entry"><div class="hd"><span class="name">Manipal Institute of Technology, Bengaluru</span></div>' +
+    '<p style="color:var(--secondary)">B.Tech — Electronics &amp; Computer Engineering <span class="muted">Aug 2023 – Jul 2027</span></p></div>';
+}
+function cv() {
+  const bar = v => { const f = Math.round(v/100*24); return '<span class="bar"><i>'+'━'.repeat(f)+'</i>'+'━'.repeat(24-f)+'</span>'; };
+  $('#cv').innerHTML = '<h2>Toolkit</h2><dl class="kv">' +
+    SKILLS.map(s => `<dt>${esc(s.n)}</dt><dd style="color:var(--${s.c})">${bar(s.v)}</dd>`).join('') +
+    '</dl><h2>Download</h2><p><a href="https://github.com/Trafalgar-2006/portfolio/raw/master/Mohith_Akshay_Duggirala_Resume.pdf" target="_blank" rel="noopener noreferrer">Resume (PDF)</a></p>';
+}
+function safeHref(v) {
+  const s = String(v).trim();
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return 'mailto:' + encodeURI(s);
+  const bare = s.replace(/^https?:\/\//i, '');
+  if (!/^[\w.-]+\.[a-z]{2,}(\/\S*)?$/i.test(bare)) return '';
+  return 'https://' + encodeURI(bare);
+}
+function contacts() {
+  $('#contacts').innerHTML = CONTACTS.map(c => {
+    const h = safeHref(c.value);
+    const v = h ? `<a href="${esc(h)}" target="_blank" rel="noopener noreferrer">${esc(c.value)}</a>` : esc(c.value);
+    return `<dt>${esc(c.label)}</dt><dd>${v}</dd>`;
+  }).join('');
+}
+function now() {
+  $('#nowlist').innerHTML = Object.entries(NOW).map(([k, items]) =>
+    `<div class="entry"><div class="hd"><span class="muted" style="letter-spacing:.14em">${k.toUpperCase()}</span></div>` +
+    items.map(i => `<p>▸ ${esc(i)}</p>`).join('') + '</div>').join('');
+}
 
-      <!-- WHO / NOW — the cockpit's top band -->
-      <section>
-        <div class="grid two">
-          <div class="panel">
-            <h2>Who</h2>
-            <div class="roles" id="roles"></div>
-          </div>
-          <div class="panel">
-            <h2>Now</h2>
-            <div id="now"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- WORK -->
-      <section id="work-section">
-        <div class="panel">
-          <h2>Work <span class="count" id="workCount"></span></h2>
-          <div class="work" id="work"></div>
-        </div>
-      </section>
-
-      <!-- SKILLS -->
-      <section>
-        <div class="panel">
-          <h2>Toolkit</h2>
-          <div class="skills" id="skills"></div>
-        </div>
-      </section>
-
-      <!-- SSH CALLOUT — the distinctive thing, given room -->
-      <section>
-        <div class="callout">
-          <h2 style="color:var(--primary)">The same portfolio, over SSH</h2>
-          <p style="color:var(--dim-mid); max-width:var(--measure)">
-            No browser, no JavaScript. A full terminal interface with five colour
-            themes, eight live animations, two playable games and a guestbook —
-            served straight over the SSH protocol.
-          </p>
-          <div class="term-demo">
-<pre>╭──────────────────────╮╭─ <span class="k">WHO</span> ───────────────────╮╭─ <span class="k">NOW</span> ───────────────────╮
-│ <span class="w">MOHITH</span>               ││ ML Engineer · Builder    ││ building ▸ EmbedGen      │
-│ <span class="w">AKSHAY</span>               ││ turns ideas into things  ││ learning ▸ Raft, Rust    │
-│ NAVIGATE             │╰──────────────────────────╯╰──────────────────────────╯
-│ <span class="k">▸ Projects</span>           │╭─ <span class="k">WORK · 9</span> ─────────────────────────────────────────╮
-│   About              ││ <span class="g">●</span> EmbedGen — Domain-Specific Code LLM                │
-│   Resume             ││ <span class="y">◐</span> SAR2EO — Satellite Image Translation               │
-│   Guestbook          ││ <span class="g">●</span> Autonomous Trading System                          │
-╰──────────────────────╯╰──────────────────────────────────────────────────────╯
-  ? help   / search   ⏎ open   t theme   s fx   q quit</pre>
-          </div>
-          <button class="ssh-cmd" id="sshBtn2">
-            <span class="prompt">$</span>
-            <span>ssh mohith.is-a.dev</span>
-            <span class="copy">copy</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- CONTACT -->
-      <section>
-        <div class="panel">
-          <h2>Get in touch</h2>
-          <div class="contacts" id="contacts"></div>
-        </div>
-      </section>
-
-    </main>
-
-    <footer class="wrap">
-      <span>Built in Go with Bubbletea &amp; Wish.</span>
-      <a href="https://github.com/Trafalgar-2006/portfolio" target="_blank" rel="noopener noreferrer">Source</a>
-      <span id="lastPush" style="margin-left:auto"></span>
-    </footer>
-  </div>
-
-  <div class="toast" id="toast">copied</div>
-
-  <script>
-    'use strict';
-
-    // ═══════════════════════════════════════════════════════════════
-    // FALLBACK CONTENT
-    // The live list comes from /api/content, which is the same data the
-    // SSH TUI renders. This is only what shows if that fetch fails or the
-    // file is opened straight from disk — content.yaml is the source of
-    // truth, not this array.
-    // ═══════════════════════════════════════════════════════════════
-    let PROJECTS = [
-      { title: 'EmbedGen — Domain-Specific Code LLM', status: 'wip', label: 'WIP', hl: '',
-        desc: 'A 62M-parameter transformer built from scratch on embedded-systems C/C++. Custom BPE tokeniser, RoPE + RMSNorm, quantised to ONNX FP16 for edge deployment.',
-        tags: ['Python', 'PyTorch', 'ONNX', 'CUDA'], github: 'github.com/trafalgar-2006/EmbedGen' },
-      { title: 'ISRO LEOS — Sim-to-Real Vision', status: 'research', label: 'Research', hl: '22 FPS on Jetson',
-        desc: 'Synthetic-to-real perception pipeline for ISRO’s Low Earth Orbit Satellite lab. 6,000+ annotated images from BlenderProc; YOLOv7 on Jetson Xavier via TensorRT.',
-        tags: ['BlenderProc', 'YOLOv7', 'TensorRT'], github: '' },
-      { title: 'Autonomous Trading System', status: 'live', label: 'Live', hl: '',
-        desc: 'AI swing-trading agent generating signals across the US equity market, executing paper trades via Alpaca with position sizing and stop-loss logic.',
-        tags: ['Python', 'SQLite', 'Alpaca API'], github: 'github.com/trafalgar-2006/autonomous-trading-agent' },
-    ];
-
-    const ROLES = [
-      { t: 'Computer Vision Intern', o: 'ISRO – LEOS', p: 'Dec 2025 – Jan 2026',
-        b: ['BlenderProc pipeline → 6,000+ COCO/YOLO annotated images', 'YOLOv7 on Jetson Xavier via TensorRT — 22 FPS real-time'] },
-      { t: 'Founder & Lead Engineer', o: 'Webcraft Studios', p: 'Jan 2025 – Present',
-        b: ['Digital agency, multiple international SaaS clients in year one'] },
-      { t: 'Software Engineering Intern', o: 'SenseOps Tech Solutions', p: 'May – Jul 2025',
-        b: ['Custom UDP/TCP packet analyser for a vibration sensor network'] },
-    ];
-
-    const NOW = {
-      building: ['EmbedGen — LLM fine-tuning on embedded-systems code', 'Autonomous trading agent (paper trading, live)'],
-      learning: ['Distributed systems & consensus (Raft)', 'Rust for embedded targets'],
-    };
-
-    const SKILLS = [
-      { n: 'Python', v: 95, c: 'primary' }, { n: 'Go', v: 82, c: 'primary' },
-      { n: 'PyTorch', v: 88, c: 'secondary' }, { n: 'YOLOv7', v: 85, c: 'secondary' },
-      { n: 'React', v: 80, c: 'purple' }, { n: 'Docker', v: 83, c: 'success' },
-    ];
-
-    let CONTACTS = [
-      { icon: '(@)', label: 'Email', value: 'd.mohithakshay@gmail.com' },
-      { icon: '(in)', label: 'LinkedIn', value: 'linkedin.com/in/dmohithakshay' },
-      { icon: '(gh)', label: 'GitHub', value: 'github.com/trafalgar-2006' },
-      { icon: '(~)', label: 'Website', value: 'webcraftstudios.co.in' },
-    ];
-
-    const $ = (s) => document.querySelector(s);
-    const esc = (s) => String(s).replace(/[&<>"']/g, c =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-    // ═══ THEME — the same five the terminal ships ═══
-    function setTheme(name) {
-      document.documentElement.setAttribute('data-theme', name);
-      document.querySelectorAll('.swatch').forEach(b =>
-        b.setAttribute('aria-pressed', String(b.dataset.set === name)));
-      try { localStorage.setItem('theme', name); } catch (_) {}
+// ── live content, same source as the SSH TUI ──
+async function live() {
+  try {
+    const r = await fetch('/api/content', {cache:'no-cache'});
+    if (!r.ok) return;
+    const d = await r.json();
+    if (Array.isArray(d.projects) && d.projects.length) {
+      PROJECTS = d.projects.map(p => ({
+        title:String(p.title||''), status:['live','wip','research'].includes(p.status)?p.status:'wip',
+        label:String(p.label||''), hl:String(p.hl||''), desc:String(p.desc||''),
+        tags:Array.isArray(p.tags)?p.tags.map(String):[], github:String(p.github||''),
+      }));
+      work();
     }
-    document.querySelectorAll('.swatch').forEach(b =>
-      b.addEventListener('click', () => setTheme(b.dataset.set)));
-    try {
-      const saved = localStorage.getItem('theme');
-      if (saved) setTheme(saved);
-    } catch (_) {}
-
-    // ═══ COPY THE SSH COMMAND ═══
-    function copySSH() {
-      const cmd = 'ssh mohith.is-a.dev';
-      const done = () => {
-        const t = $('#toast');
-        t.textContent = 'copied — paste it in your terminal';
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2200);
-      };
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(cmd).then(done).catch(done);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = cmd; document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); } catch (_) {}
-        ta.remove(); done();
-      }
+    if (Array.isArray(d.contacts) && d.contacts.length) {
+      CONTACTS = d.contacts.map(c => ({label:String(c.label||''), value:String(c.value||'')}));
+      contacts();
     }
-    $('#sshBtn').addEventListener('click', copySSH);
-    $('#sshBtn2').addEventListener('click', copySSH);
+    if (d.name) $('#nm').textContent = d.name.toUpperCase();
+  } catch (_) {}
+}
 
-    // ═══ RENDER ═══
-    function renderWork() {
-      const el = $('#work');
-      $('#workCount').textContent = PROJECTS.length + ' projects';
-      el.innerHTML = PROJECTS.map(p => `
-        <article class="proj" data-status="${esc(p.status)}">
-          <div class="proj-hd">
-            <span class="proj-name">${esc(p.title)}</span>
-            <span class="badge ${esc(p.status)}">${esc(p.label || p.status)}</span>
-            ${p.hl ? `<span class="hl">⚡ ${esc(p.hl)}</span>` : ''}
-            ${p.auto ? `<span class="auto" title="synced automatically from GitHub">auto</span>` : ''}
-          </div>
-          <p class="proj-desc">${esc(p.desc)}</p>
-          ${p.tags && p.tags.length ? `<div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : ''}
-          ${p.github ? `<a class="proj-gh" href="https://${esc(p.github)}" target="_blank" rel="noopener noreferrer">→ ${esc(p.github)}</a>` : ''}
-        </article>`).join('');
-      observeReveal();
-    }
+// ── boot: the scanline sweep, then the portrait draws in ──
+(function boot() {
+  const sweep = $('#sweep'), pre = $('#portrait');
+  const lines = PORTRAIT.split('\n');
+  let done = false;
 
-    function renderRoles() {
-      $('#roles').innerHTML = ROLES.map(r => `
-        <div class="role-item">
-          <div class="t">${esc(r.t)}</div>
-          <div class="o">${esc(r.o)}</div>
-          <div class="p">${esc(r.p)}</div>
-          <ul>${r.b.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-        </div>`).join('');
-    }
-
-    function renderNow() {
-      $('#now').innerHTML = Object.entries(NOW).map(([k, items]) => `
-        <div class="now-row">
-          <span class="lbl">${esc(k)}</span>
-          <ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
-        </div>`).join('');
-    }
-
-    function renderSkills() {
-      $('#skills').innerHTML = SKILLS.map(s => `
-        <div class="skill">
-          <span class="n">${esc(s.n)}</span>
-          <span class="bar"><i data-v="${s.v}" style="background:var(--${s.c})"></i></span>
-          <span class="v">${s.v}%</span>
-        </div>`).join('');
-    }
-
-    // safeHref builds a link from a contact value, allowing only mail and web
-    // schemes. Values ultimately come from content.yaml and the GitHub sync, so
-    // the scheme is decided here rather than inherited from the data — that is
-    // what keeps a `javascript:` value from ever becoming a link.
-    function safeHref(value) {
-      const v = String(value).trim();
-      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'mailto:' + encodeURI(v);
-      const bare = v.replace(/^https?:\/\//i, '');
-      if (!/^[\w.-]+\.[a-z]{2,}(\/\S*)?$/i.test(bare)) return '';
-      return 'https://' + encodeURI(bare);
-    }
-
-    function renderContacts() {
-      $('#contacts').innerHTML = CONTACTS.map(c => {
-        const href = safeHref(c.value);
-        const inner = `<span class="ic">${esc(c.icon)}</span>
-            <span><span class="lb">${esc(c.label)}</span><br><span class="vl">${esc(c.value)}</span></span>`;
-        // No usable link: still show the contact, just not as an anchor.
-        if (!href) return `<div class="contact">${inner}</div>`;
-        return `<a class="contact" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>`;
-      }).join('');
-    }
-
-    // Scroll-triggered reveal — a web-native motion the terminal can't do.
-    let io = null;
-    function observeReveal() {
-      const items = document.querySelectorAll('.proj:not(.in)');
-      if (!('IntersectionObserver' in window)) {
-        items.forEach(i => i.classList.add('in'));
-        return;
-      }
-      if (!io) {
-        io = new IntersectionObserver((entries) => {
-          entries.forEach((e, idx) => {
-            if (e.isIntersecting) {
-              setTimeout(() => e.target.classList.add('in'), idx * 60);
-              io.unobserve(e.target);
-            }
-          });
-        }, { rootMargin: '0px 0px -8% 0px' });
-      }
-      items.forEach(i => io.observe(i));
-    }
-
-    function animateSkills() {
-      document.querySelectorAll('.skill .bar i').forEach((el, i) =>
-        setTimeout(() => { el.style.width = el.dataset.v + '%'; }, 120 + i * 70));
-    }
-
-    // ═══ LIVE CONTENT — same source as the SSH TUI ═══
-    async function loadLive() {
-      try {
-        const res = await fetch('/api/content', { cache: 'no-cache' });
-        if (!res.ok) return;
-        const d = await res.json();
-
-        if (Array.isArray(d.projects) && d.projects.length) {
-          PROJECTS = d.projects.map(p => ({
-            title: String(p.title || 'Untitled'),
-            status: ['live', 'wip', 'research'].includes(p.status) ? p.status : 'wip',
-            label: String(p.label || ''), hl: String(p.hl || ''),
-            desc: String(p.desc || ''),
-            tags: Array.isArray(p.tags) ? p.tags.map(String) : [],
-            github: String(p.github || ''), auto: !!p.auto,
-          }));
-          renderWork();
-        }
-        if (Array.isArray(d.contacts) && d.contacts.length) {
-          CONTACTS = d.contacts.map(c => ({
-            icon: String(c.icon || '(·)'), label: String(c.label || ''), value: String(c.value || ''),
-          }));
-          renderContacts();
-        }
-        if (d.name) $('#heroName').textContent = d.name;
-        if (d.tagline) $('#heroRole').textContent = d.tagline;
-        if (d.location) $('#heroWhere').textContent = d.location;
-      } catch (_) {
-        // Offline or opened as a file — the fallback is already on screen.
-      }
-    }
-
-    // ═══ INTRO: rain + name, ~1.4s, skippable — the terminal's beat ═══
-    (function intro() {
-      const cv = $('#rain'), ctx = cv.getContext('2d');
-      const nameEl = $('#introName');
-      const NAME = 'MOHITH AKSHAY';
-      nameEl.innerHTML = [...NAME].map(c =>
-        `<span>${c === ' ' ? '&nbsp;' : esc(c)}</span>`).join('');
-      const cells = [...nameEl.querySelectorAll('span')];
-
-      let w, h, cols, drops;
-      const GLYPHS = 'ｦｱｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄ0123456789';
-      function size() {
-        w = cv.width = window.innerWidth;
-        h = cv.height = window.innerHeight;
-        cols = Math.floor(w / 14);
-        drops = Array(cols).fill(0).map(() => Math.random() * -50);
-      }
-      size();
-      window.addEventListener('resize', size);
-
-      const accent = () => getComputedStyle(document.documentElement)
-        .getPropertyValue('--primary').trim() || '#8BE9FD';
-
-      let raf, started = Date.now(), finished = false;
-      function frame() {
-        ctx.fillStyle = 'rgba(0,0,0,.09)';
-        ctx.fillRect(0, 0, w, h);
-        ctx.font = '13px monospace';
-        ctx.fillStyle = accent();
-        for (let i = 0; i < cols; i++) {
-          ctx.fillText(GLYPHS[Math.floor(Math.random() * GLYPHS.length)], i * 14, drops[i] * 16);
-          if (drops[i] * 16 > h && Math.random() > .975) drops[i] = 0;
-          drops[i]++;
-        }
-        // Letters lock in across the first second.
-        const t = (Date.now() - started) / 1000;
-        const lit = Math.floor((t / 1.0) * cells.length);
-        cells.forEach((c, i) => { if (i < lit) c.classList.add('on'); });
-
-        if (t > 1.4) { done(); return; }
-        raf = requestAnimationFrame(frame);
-      }
-
-      function done() {
-        if (finished) return;
-        finished = true;
-        cancelAnimationFrame(raf);
-        cells.forEach(c => c.classList.add('on'));
-        $('#intro').classList.add('done');
-        $('#shell').classList.add('ready');
-        setTimeout(() => { $('#intro').remove(); }, 600);
-        animateSkills();
-      }
-
-      // Nothing stands between a visitor and the content.
-      ['keydown', 'pointerdown', 'wheel', 'touchstart'].forEach(ev =>
-        window.addEventListener(ev, done, { once: true, passive: true }));
-
-      // Respect reduced motion: skip the show entirely.
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        done();
-      } else {
-        raf = requestAnimationFrame(frame);
-      }
+  function draw() {
+    let i = 0;
+    (function next() {
+      if (i > lines.length) return;
+      pre.textContent = lines.slice(0, i).join('\n');
+      i++;
+      setTimeout(next, 18);
     })();
+  }
+  function finish() {
+    if (done) return; done = true;
+    $('#boot').classList.add('gone');
+    setTimeout(() => $('#boot').remove(), 500);
+    draw();
+  }
 
-    // ═══ BOOT ═══
-    renderRoles(); renderNow(); renderSkills(); renderContacts(); renderWork();
-    loadLive();
+  if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) {
+    pre.textContent = PORTRAIT; $('#boot').remove(); return;
+  }
+  // 300ms sweep, matching the terminal's phase I.
+  requestAnimationFrame(() => { sweep.style.transition = 'top .3s linear'; sweep.style.top = '100%'; });
+  setTimeout(finish, 340);
+  ['keydown','pointerdown','wheel','touchstart'].forEach(e =>
+    window.addEventListener(e, finish, {once:true, passive:true}));
+})();
 
-    // Last push, straight from GitHub.
-    fetch('https://api.github.com/repos/Trafalgar-2006/portfolio/commits?per_page=1')
-      .then(r => r.ok ? r.json() : null)
-      .then(c => {
-        if (!c || !c[0]) return;
-        const msg = c[0].commit.message.split('\n')[0].slice(0, 46);
-        $('#lastPush').textContent = 'last push: ' + msg;
-      }).catch(() => {});
-  </script>
+// ── the quiet heartbeat, same sequence as the footer over SSH ──
+(function beat() {
+  const seq = ['.','.','∘','◯','∘','.','.'];
+  let i = 0;
+  setInterval(() => { $('#beat').textContent = seq[i++ % seq.length]; }, 500);
+})();
+
+work(); bio(); cv(); contacts(); now(); live();
+
+fetch('https://api.github.com/repos/Trafalgar-2006/portfolio/commits?per_page=1')
+  .then(r => r.ok ? r.json() : null)
+  .then(c => { if (c && c[0]) $('#tele').textContent =
+    'last push  ·  ' + c[0].commit.message.split('\n')[0].slice(0, 42); })
+  .catch(() => {});
+</script>
 </body>
-
 </html>

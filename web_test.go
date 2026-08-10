@@ -71,7 +71,9 @@ func TestWebThemesMatchTerminal(t *testing.T) {
 // hardcoded fallback — that's what stops it drifting from content.yaml.
 func TestWebFetchesLiveContent(t *testing.T) {
 	html := readIndex(t)
-	for _, want := range []string{"/api/content", "loadLive", "renderWork"} {
+	// Assert the contract, not function names: the page must fetch the live
+	// endpoint and re-render the project list from what comes back.
+	for _, want := range []string{"/api/content", "fetch(", "d.projects"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("index.html is missing %q — the page would drift again", want)
 		}
@@ -130,5 +132,46 @@ func TestWebMotionIsConsiderate(t *testing.T) {
 func TestWebHasFocusStates(t *testing.T) {
 	if !strings.Contains(readIndex(t), ":focus-visible") {
 		t.Error("no visible focus state for keyboard navigation")
+	}
+}
+
+// The web page is a rendering of the terminal, not a generic portfolio. It
+// must carry the same braille portrait and the same flat treatment.
+func TestWebMirrorsTheTerminal(t *testing.T) {
+	html := readIndex(t)
+
+	// The portrait art itself must be embedded, not approximated.
+	art := views.PortraitReveal(views.PortraitRows())
+	if len(art) == 0 {
+		t.Fatal("no portrait in the views package")
+	}
+	// Check a distinctive middle row survives into the page.
+	row := strings.TrimSpace(art[len(art)/2])
+	if row != "" && !strings.Contains(html, row) {
+		t.Error("the page does not embed the terminal's braille portrait")
+	}
+
+	// Monospace throughout — this is a terminal portfolio.
+	if !strings.Contains(html, "--mono") || !strings.Contains(html, "font-family:var(--mono)") {
+		t.Error("the page is not set in monospace")
+	}
+
+	// Flat: no rounded cards or drop shadows dressing content up as panels.
+	for _, generic := range []string{"border-radius:10px", "border-radius: 10px", "box-shadow:0 4px", "backdrop-filter"} {
+		if strings.Contains(html, generic) {
+			t.Errorf("the page reintroduced panel chrome: %q", generic)
+		}
+	}
+
+	// The same status glyphs the terminal uses.
+	for _, dot := range []string{"●", "◐", "◇"} {
+		if !strings.Contains(html, dot) {
+			t.Errorf("status glyph %q missing from the web page", dot)
+		}
+	}
+
+	// And the same heartbeat sequence as the SSH footer.
+	if !strings.Contains(html, "∘") || !strings.Contains(html, "◯") {
+		t.Error("the idle heartbeat is missing from the web footer")
 	}
 }

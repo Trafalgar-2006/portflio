@@ -31,8 +31,23 @@ func TestPortraitIsTheHero(t *testing.T) {
 	if found < 0 || found > 2 {
 		t.Errorf("portrait first appears on row %d; it should anchor the top", found)
 	}
-	if lead := strings.TrimLeft(rows[found], " "); !strings.ContainsAny(string([]rune(lead)[0]), "⡀⣿⢿⣻⠄⠅⠂⠰⠉⢀⢠⢸⢕⢿⣼⣻⡞⡀") {
-		t.Errorf("portrait row does not start at the left edge: %q", string([]rune(lead)[:10]))
+	// The block must hug the left margin: its widest row starts within a
+	// column or two of the edge. Individual rows are naturally inset — the
+	// crown of a head is narrower than the jaw.
+	minIndent := 1 << 30
+	for _, r := range rows {
+		if !strings.ContainsAny(r, "⡀⣿⢿⣻⣾⣽⣷⣼") {
+			continue
+		}
+		body := strings.TrimLeft(r, " ")
+		ind := len([]rune(r)) - len([]rune(body))
+		ind += len([]rune(body)) - len([]rune(strings.TrimLeft(body, "⠀")))
+		if ind < minIndent {
+			minIndent = ind
+		}
+	}
+	if minIndent > 3 {
+		t.Errorf("the portrait block is inset %d columns; it should anchor the left edge", minIndent)
 	}
 }
 

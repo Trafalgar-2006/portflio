@@ -20,8 +20,8 @@ import (
 const stackWidth = 75
 
 // portraitCols is how much of each portrait line is drawn. The art is 68
-// columns wide but the face lives in roughly 25–47, so the tail is trimmed.
-const portraitCols = 52
+// columns wide and already cropped to the face, so it is drawn in full.
+const portraitCols = 34
 
 // HeroState is what the header needs to draw itself.
 type HeroState struct {
