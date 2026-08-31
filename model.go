@@ -215,9 +215,11 @@ type Model struct {
 	saverTick   int // tick the current effect started on
 	saverLocked bool // true when the user picked an effect explicitly
 
-	// Particle splatter page transition
-	splatter    *views.SplatterTextEffect
-	splatterOn  bool
+	// Particle splatter page transition. It fires once per session — see
+	// startWipe for why.
+	splatter     *views.SplatterTextEffect
+	splatterOn   bool
+	splatterUsed bool
 
 	// Header text effect (slot machine / swarm / etc. on section titles)
 	headerFX   views.TextEffect
@@ -828,20 +830,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tickCmd()
 		}
 
-		// ── Mini-game clock ───────────────────────────────────────
-		if m.currentView == ViewGames && len(m.games) > 0 && m.gameIdx < len(m.games) {
-			m.games[m.gameIdx].Step()
-			return m, tickCmd()
-		}
-
-		// ── Header text effect ────────────────────────────────────
-		if m.headerOn && m.headerFX != nil {
-			if !m.headerFX.Step() {
-				m.headerOn = false
-			}
-		}
-
 		// ── Wipe transition ─────────────────────────────────────────────
+		// Must sit above the mini-game clock. That branch returns early, so
+		// while a game is on screen nothing below it ever runs — which meant
+		// leaving a game relied entirely on the splatter (whose branch is
+		// above) to commit the pending view. Once the splatter stopped firing
+		// on every transition, [esc] out of Snake became a dead end.
+		// A transition in flight outranks the game clock.
 		if m.wipePhase != 0 {
 			step := m.height / 4
 			if step < 4 { step = 4 }
@@ -855,6 +850,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.wipeLines = 0
 			}
 			return m, tickCmd()
+		}
+
+		// ── Mini-game clock ───────────────────────────────────────
+		if m.currentView == ViewGames && len(m.games) > 0 && m.gameIdx < len(m.games) {
+			m.games[m.gameIdx].Step()
+			return m, tickCmd()
+		}
+
+		// ── Header text effect ────────────────────────────────────
+		if m.headerOn && m.headerFX != nil {
+			if !m.headerFX.Step() {
+				m.headerOn = false
+			}
 		}
 
 		// ── Matrix rain ────────────────────────────────────────────
@@ -1425,11 +1433,27 @@ func (m *Model) startWipe(target View, tab int) {
 		m.highlightY = 0
 	}
 
-	// Prefer the particle splatter: shatter the page currently on screen and
-	// let it fall away. It needs the outgoing frame, so it's seeded here while
-	// currentView is still the old one. Fall back to the wipe when there's no
-	// frame to shatter (degenerate terminal size).
-	if m.width > 4 && m.height > 4 {
+	// The particle splatter shatters the outgoing page and lets it fall away.
+	// It used to run on every transition, which turned it into noise — a
+	// flourish you see nine times stops reading as one.
+	//
+	// So it fires exactly once per session, on the first trip out of home:
+	//
+	//   - it's the first transition anyone sees, which makes it read as
+	//     deliberate rather than as something that happens at random
+	//   - home is the only screen carrying the portrait and the banner, and a
+	//     dense page is the only thing worth shattering. Sparse text pages
+	//     like /now just look cheap coming apart.
+	//   - going back (esc/q) stays fast and quiet — the outbound trip is the
+	//     one that earns an animation
+	//
+	// A visitor arriving on a direct route (`ssh host projects`) skips home
+	// entirely and never triggers it, which is right: someone who asked for
+	// one screen shouldn't be made to sit through it.
+	outbound := m.currentView == ViewHome && target != ViewHome
+	if !m.splatterUsed && outbound && m.width > 4 && m.height > 4 {
+		// The splatter needs the outgoing frame, so it's seeded here while
+		// currentView is still the old one.
 		body := m.renderBody(views.Themes[m.themeIdx])
 		lines := strings.Split(body, "\n")
 		if len(lines) > 1 {
@@ -1437,9 +1461,13 @@ func (m *Model) startWipe(target View, tab int) {
 			sp.Start(lines, m.width, m.height)
 			m.splatter = sp
 			m.splatterOn = true
+			m.splatterUsed = true
 			m.wipePhase = 0
 			return
 		}
+		// Too degenerate to shatter — fall through to the wipe without
+		// burning the one use, so it can still land later once there's a
+		// real frame to work with.
 	}
 	m.wipePhase = 1
 	m.wipeLines = 0

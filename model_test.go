@@ -69,9 +69,9 @@ func TestViewFitsTerminalHeight(t *testing.T) {
 		m.currentView = ViewHome
 		m = drive(m, tea.WindowSizeMsg{Width: 100, Height: h})
 		for _, nav := range [][]tea.Msg{
-			{key("enter")},                              // Projects
-			{key("right"), key("enter")},                // About
-			{key("right"), key("right"), key("enter")},  // Contacts
+			{key("enter")},                             // Projects
+			{key("right"), key("enter")},               // About
+			{key("right"), key("right"), key("enter")}, // Contacts
 		} {
 			mm := settle(drive(m, nav...))
 			got := strings.Count(mm.View(), "\n") + 1
@@ -200,7 +200,7 @@ func TestMatrixRebuildsOnResize(t *testing.T) {
 	for i, ln := range strings.Split(strings.TrimRight(m.View(), "\n"), "\n") {
 		if w := len([]rune(views.StripAnsiForTest(ln))); w != 200 {
 			t.Fatalf("rendered row %d is %d columns wide, want 200", i, w)
-			}
+		}
 	}
 }
 
@@ -427,5 +427,144 @@ func TestZeroSizeWindowFallsBack(t *testing.T) {
 	m = drive(m, tea.WindowSizeMsg{Width: 150, Height: 50})
 	if m.width != 150 || m.height != 50 {
 		t.Errorf("valid size not applied: %dx%d", m.width, m.height)
+	}
+}
+
+// The particle splatter is a flourish, and a flourish you see on every single
+// navigation is just noise. It fires once per session, on the first trip out
+// of home — these pin that down so it can't quietly go back to firing always.
+
+func TestSplatterFiresOnFirstOutboundTrip(t *testing.T) {
+	m := NewModel(nil)
+	m.currentView = ViewHome
+	m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 30})
+
+	m = drive(m, key("enter")) // home → Projects
+	if !m.splatterOn {
+		t.Fatal("the first trip out of home should shatter the page")
+	}
+	if !m.splatterUsed {
+		t.Error("splatterUsed should be set the moment it fires")
+	}
+}
+
+func TestSplatterFiresOnlyOncePerSession(t *testing.T) {
+	m := NewModel(nil)
+	m.currentView = ViewHome
+	m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 30})
+
+	// Burn the one use.
+	m = settle(drive(m, key("enter")))
+	if !m.splatterUsed {
+		t.Fatal("expected the first transition to use the splatter")
+	}
+
+	// Every subsequent navigation must take the plain wipe. Walk the whole
+	// tab bar, out and back, several times over.
+	for i, nav := range [][]tea.Msg{
+		{key("esc")},                 // back home
+		{key("right"), key("enter")}, // About
+		{key("esc")},                 // home
+		{key("right"), key("right"), key("enter")}, // Contacts
+		{key("esc")},   // home
+		{key("enter")}, // Projects again
+	} {
+		m = drive(m, nav...)
+		if m.splatterOn {
+			t.Fatalf("navigation %d shattered the page a second time", i)
+		}
+		m = settle(m)
+	}
+}
+
+// Going back should be quiet — the outbound trip is the one that earns it.
+func TestSplatterDoesNotFireOnTheWayBack(t *testing.T) {
+	m := NewModel(nil)
+	m.currentView = ViewAbout // arrived via a direct route, never saw home
+	m.splatterUsed = false
+	m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 30})
+
+	m = drive(m, key("esc")) // About → home
+	if m.splatterOn {
+		t.Error("returning home should not shatter the page")
+	}
+	if m.splatterUsed {
+		t.Error("a return trip should not burn the session's one use")
+	}
+}
+
+// Someone who asked for a single screen shouldn't be made to sit through an
+// animation on the way to it.
+func TestSplatterSkippedOnDirectRoute(t *testing.T) {
+	m := NewModel(nil)
+	m.directRoute = "projects"
+	m.applyDirectRoute()
+	m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 30})
+
+	if m.splatterOn {
+		t.Error("a direct route should land on the screen without an animation")
+	}
+	if m.currentView != ViewProjects {
+		t.Fatalf("expected ViewProjects, got %v", m.currentView)
+	}
+}
+
+// A terminal too small to shatter falls back to the wipe, and must not burn
+// the one use doing it — the flourish can still land later once the window
+// is a real size.
+func TestSplatterNotBurnedOnDegenerateSize(t *testing.T) {
+	m := NewModel(nil)
+	m.currentView = ViewHome
+	m = drive(m, tea.WindowSizeMsg{Width: 3, Height: 3})
+
+	m = drive(m, key("enter"))
+	if m.splatterOn {
+		t.Error("a 3x3 terminal has nothing to shatter")
+	}
+	if m.splatterUsed {
+		t.Error("falling back to the wipe should not consume the session's one use")
+	}
+}
+
+// The mini-game clock returns early from the tick handler, so anything below
+// it never runs while a game is on screen. The wipe transition therefore has
+// to be checked BEFORE it, or leaving a game never commits the pending view.
+//
+// This was live for as long as the splatter fired on every transition: the
+// splatter's branch sits above the game clock, so it masked the problem. The
+// moment the splatter became once-per-session, [esc] out of Snake became a
+// dead end. Pin the ordering.
+func TestLeavingAGameCommitsWithoutTheSplatter(t *testing.T) {
+	for _, g := range []struct {
+		name string
+		idx  int
+	}{{"snake", 0}, {"tetris", 1}} {
+		t.Run(g.name, func(t *testing.T) {
+			m := NewModel(nil)
+			m.currentView = ViewHome
+			m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 30})
+
+			// Spend the session's one splatter, so the exit can only be
+			// carried by the wipe.
+			m = settle(drive(m, key("enter")))
+			if !m.splatterUsed {
+				t.Fatal("expected the first transition to spend the splatter")
+			}
+
+			m.startGame(g.idx)
+			m = settle(m)
+			if m.currentView != ViewGames {
+				t.Fatalf("expected ViewGames, got %v", m.currentView)
+			}
+
+			m = settle(drive(m, key("esc")))
+			if m.splatterOn {
+				t.Error("the splatter should already be spent")
+			}
+			if m.currentView != ViewHome {
+				t.Fatalf("esc did not leave the game: got %v — is the wipe branch "+
+					"below the mini-game clock again?", m.currentView)
+			}
+		})
 	}
 }
