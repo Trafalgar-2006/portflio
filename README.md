@@ -2,6 +2,12 @@
 
 > An interactive TUI portfolio served over raw SSH **and** a web version at [mohith.is-a.dev](https://mohith.is-a.dev). No frameworks. No loading spinners.
 
+The website isn't a companion page — it's the same terminal, in a browser.
+Same portrait, same name banner, same five themes, same keyboard model
+(`← →` tabs, `j/k`, `gg/G`, `/` palette, `t` themes), same fixed frame with a
+status line pinned to the bottom. It reads its content from the same
+`content.yaml` the TUI does, over `/api/content`.
+
 ## 👾 Connect
 
 ```bash
@@ -190,9 +196,16 @@ CGO_ENABLED=1 go test ./... -race          # needs a C toolchain (gcc)
 
 Every view is rendered at every terminal width from 0 to 130 to prove it can't
 panic or overflow; effects are checked for exact frame dimensions; the game,
-guestbook and sync logic are covered directly. CI runs build, vet, gofmt, the
-race detector, and a Docker image build with a container smoke test on every
-push.
+guestbook and sync logic are covered directly; and `views/web_test.go` asserts
+the web page's portrait, banner, tagline, themes and tab list still match the
+TUI's. CI runs build, vet, gofmt, the race detector, and a Docker image build
+with a container smoke test on every push.
+
+After editing `views/home.go` or `views/theme.go`, regenerate the page's copy:
+
+```bash
+go run tools/sync_web.go
+```
 
 ---
 
@@ -219,6 +232,7 @@ outgoing page into falling debris.
 | SSH server | [Wish](https://github.com/charmbracelet/wish) + [charmbracelet/ssh](https://github.com/charmbracelet/ssh) |
 | Styling | [Lipgloss](https://github.com/charmbracelet/lipgloss) |
 | Web portfolio | Vanilla HTML/CSS/JS — embedded in the Go binary via `go:embed`, fed live by `/api/content` |
+| Web ↔ TUI sync | `tools/sync_web.go` copies the portrait, banner and themes into the page; `views/web_test.go` fails the build if they drift |
 | Custom domain | `mohith.is-a.dev` (web) · `ssh.mohith.is-a.dev` (SSH) via [is-a.dev](https://is-a.dev) |
 | Keep-alive | UptimeRobot HTTP + TCP monitor |
 

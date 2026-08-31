@@ -3,43 +3,65 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Mohith Akshay Duggirala — ML engineer, full-stack developer & founder of Webcraft Studios. Built a 62M-parameter domain-specific LLM from scratch, deployed CV systems at ISRO, and ships production software.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description"
+    content="Mohith Akshay Duggirala — ML engineer, full-stack developer & founder of Webcraft Studios. Computer vision at ISRO, production software, and an SSH portfolio you can connect to.">
   <title>mohith.is-a.dev</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap"
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap"
     rel="stylesheet">
   <style>
+    /* ═══════════════════════════════════════════════════════════════════
+       This page is the SSH portfolio, in a browser.
+
+       Not a website that borrows the colours — the same thing: one fixed
+       frame that never page-scrolls, a tab bar and status line pinned to
+       the bottom, content that scrolls inside its pane, and the same
+       keyboard model as the TUI (← → tabs, j/k, gg/G, / palette, t themes,
+       esc/q back).
+
+       Every colour token below mirrors views/theme.go exactly, and the
+       portrait and name banner are the same art as views/home.go.
+       ═══════════════════════════════════════════════════════════════════ */
+
     *,
     *::before,
     *::after {
       box-sizing: border-box;
       margin: 0;
-      padding: 0
+      padding: 0;
     }
 
     :root {
-      --cyan: #00e5ff;
-      --cyan-dim: rgba(0, 229, 255, 0.5);
-      --cyan-ghost: rgba(0, 229, 255, 0.06);
-      --cyan-glow: rgba(0, 229, 255, 0.3);
-      --pink: #ff4fa3;
-      --amber: #ffb700;
-      --red: #ff3333;
-      --green: #00ff88;
-      --bg: #080808;
-      --bg2: #0e0e0e;
-      --bg3: #141414;
-      --text: #d8d8d8;
-      --text-dim: #888;
-      --text-muted: #444;
-      --border: rgba(0, 229, 255, 0.1);
-      --mono: 'JetBrains Mono', monospace;
-      --pixel: 'Press Start 2P', monospace;
+      /* Defaults are the dracula theme; applyTheme() overwrites all of these. */
+      --primary: #8BE9FD;
+      --secondary: #FF79C6;
+      --accent: #F1FA8C;
+      --success: #50FA7B;
+      --warning: #FFB86C;
+      --purple: #BD93F9;
+      --text: #F8F8F2;
+      --dim-mid: #6272A4;
+      --dim: #44475A;
+      --very-dim: #565B7A;
+      --box: #6272A4;
+      --footer-bg: #21222C;
+      --footer-text: #7D82A8;
+
+      --bg: #0A0A0C;
+      --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+      /* Set by fitArt() so the ASCII art scales instead of wrapping. */
+      --art-size: 10px;
     }
 
-    html {
-      scroll-behavior: smooth
+    html,
+    body {
+      height: 100%;
+      /* The whole point: the document never scrolls. Panes do. */
+      overflow: hidden;
     }
 
     body {
@@ -47,1487 +69,1873 @@
       color: var(--text);
       font-family: var(--mono);
       font-size: 14px;
-      line-height: 1.7;
-      overflow-x: hidden;
-      min-height: 100vh;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
     }
 
-    /* scanlines */
-    body::before {
+    /* CRT scanlines, same idea as the TUI's overlay. */
+    body::after {
       content: '';
       position: fixed;
       inset: 0;
-      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, 0.1) 3px, rgba(0, 0, 0, 0.1) 4px);
+      background: repeating-linear-gradient(0deg,
+          transparent, transparent 3px,
+          rgba(0, 0, 0, .16) 3px, rgba(0, 0, 0, .16) 4px);
       pointer-events: none;
-      z-index: 9999;
+      z-index: 9000;
     }
 
-    /* ─── MATRIX ─── */
-    #matrix-canvas {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 100;
-      transition: opacity 0.8s ease;
+    ::selection {
+      background: var(--primary);
+      color: var(--bg);
     }
 
-    /* ─── BOOT ─── */
-    #boot-screen {
+    /* Thin, themed scrollbars — a default browser bar breaks the illusion. */
+    .pane::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .pane::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .pane::-webkit-scrollbar-thumb {
+      background: var(--dim);
+      border-radius: 4px;
+    }
+
+    .pane::-webkit-scrollbar-thumb:hover {
+      background: var(--dim-mid);
+    }
+
+    .pane {
+      scrollbar-width: thin;
+      scrollbar-color: var(--dim) transparent;
+    }
+
+    /* ═══ INTRO OVERLAYS ═══ */
+
+    #matrix {
       position: fixed;
       inset: 0;
+      z-index: 500;
+      transition: opacity .7s ease;
+    }
+
+    #boot,
+    #alert {
+      position: fixed;
+      inset: 0;
+      z-index: 520;
       background: var(--bg);
-      z-index: 200;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s;
+      display: none;
+      padding: clamp(16px, 5vw, 60px);
+      font-size: clamp(11px, 1.6vw, 14px);
+      overflow: hidden;
     }
 
-    #boot-screen.active {
-      opacity: 1;
-      pointer-events: all;
+    #boot.on {
+      display: block;
     }
 
-    #boot-text {
-      font-family: var(--mono);
-      font-size: 13px;
-      color: var(--cyan);
-      max-width: 600px;
-      width: 90%;
-      line-height: 2.2;
+    #boot pre {
+      color: var(--primary);
       white-space: pre-wrap;
     }
 
-    .bl {
-      display: block;
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-
-    .bl.show {
-      opacity: 1;
-    }
-
-    .b-dim {
-      color: var(--text-muted);
-    }
-
-    .b-ok {
-      color: var(--green);
-    }
-
-    .b-err {
-      color: var(--red);
-    }
-
-    .b-amber {
-      color: var(--amber);
-    }
-
-    /* ─── ALERT ─── */
-    #alert-screen {
-      position: fixed;
-      inset: 0;
-      background: #050000;
-      z-index: 210;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-    }
-
-    #alert-screen.active {
-      opacity: 1;
-      pointer-events: all;
-    }
-
-    .alert-title {
-      font-size: clamp(13px, 2.5vw, 20px);
-      color: var(--red);
-      letter-spacing: 2px;
-      margin-bottom: 18px;
-      animation: flicker 0.12s infinite alternate;
-    }
-
-    .alert-body {
-      font-size: 12px;
-      color: var(--red);
-      line-height: 2.2;
-      margin-bottom: 24px;
+    #alert {
+      place-content: center;
       text-align: center;
     }
 
-    .alert-joke {
-      font-size: 13px;
-      color: var(--cyan);
-      opacity: 0;
-      transition: opacity 0.8s;
+    #alert.on {
+      display: grid;
     }
 
-    .alert-joke.show {
+    .alert-title {
+      color: #FF3333;
+      font-weight: 700;
+      letter-spacing: .12em;
+      font-size: clamp(13px, 2.6vw, 26px);
+      margin-bottom: 1.4em;
+      animation: alertPulse .55s steps(2, end) infinite;
+    }
+
+    @keyframes alertPulse {
+      50% {
+        opacity: .35;
+      }
+    }
+
+    .alert-body {
+      color: #FF6666;
+      line-height: 2;
+    }
+
+    .alert-joke {
+      margin-top: 1.8em;
+      color: var(--success);
+      font-size: clamp(13px, 2.2vw, 22px);
+      opacity: 0;
+      transition: opacity .5s ease;
+    }
+
+    .alert-joke.on {
       opacity: 1;
     }
 
-    @keyframes flicker {
-      from {
-        opacity: 1
-      }
-
-      to {
-        opacity: 0.65
-      }
+    .skip {
+      position: fixed;
+      right: 14px;
+      bottom: 12px;
+      z-index: 530;
+      color: var(--very-dim);
+      font-size: 11px;
+      letter-spacing: .06em;
     }
 
-    /* ─── PORTFOLIO ─── */
-    #portfolio {
+    /* ═══ THE TERMINAL FRAME ═══ */
+
+    #term {
+      position: fixed;
+      inset: 0;
       display: none;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
-    #portfolio.visible {
-      display: flex;
-    }
-
-    /* HOME */
-    #home-screen {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       grid-template-rows: 1fr auto;
-      min-height: 100vh;
+      /* Respect notches without letting the frame itself scroll. */
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
     }
 
-    @media(max-width:800px) {
-      #home-screen {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr auto;
-      }
+    #term.on {
+      display: grid;
     }
 
-    /* Left panel */
-    .portrait-panel {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 32px;
-      border-right: 1px solid var(--border);
+    #screen {
       position: relative;
       overflow: hidden;
     }
 
-    @media(max-width:800px) {
-      .portrait-panel {
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        padding: 20px;
-        min-height: 180px;
-      }
-    }
-
-    #portrait-canvas {
+    .pane {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: clamp(14px, 3.2vw, 40px);
       display: none;
+      /* Momentum scrolling on touch, since j/k aren't an option there. */
+      -webkit-overflow-scrolling: touch;
     }
 
-    /* Text-based braille portrait — mirrors SSH TUI exactly */
-    #portrait-pre {
-      font-family: var(--mono);
-      font-size: clamp(7px, 0.95vw, 11px);
-      color: var(--cyan);
-      text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
-      line-height: 1.35;
-      white-space: pre;
-      opacity: 0;
-      transition: opacity 0.6s ease;
-      letter-spacing: 0;
-    }
-
-    #portrait-pre.show {
-      opacity: 1;
-    }
-
-    /* Right panel */
-    .name-panel {
-      padding: 44px 40px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    @media(max-width:800px) {
-      .name-panel {
-        padding: 28px 24px;
-      }
-    }
-
-    .name-pixel {
-      font-family: var(--pixel);
-      font-size: clamp(18px, 3.5vw, 32px);
-      color: var(--cyan);
-      line-height: 1.4;
-      text-shadow: 0 0 24px var(--cyan-glow), 0 0 60px rgba(0, 229, 255, 0.1);
-      letter-spacing: 2px;
-      margin-bottom: 8px;
-    }
-
-    .name-pixel span {
+    .pane.on {
       display: block;
     }
 
+    /* ── Home ── */
+
+    #pane-home {
+      display: none;
+      padding: clamp(10px, 2.4vw, 28px);
+    }
+
+    #pane-home.on {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: clamp(14px, 3vw, 46px);
+      align-items: center;
+      align-content: center;
+    }
+
+    .art {
+      font-size: var(--art-size);
+      line-height: 1.04;
+      white-space: pre;
+      font-weight: 400;
+      letter-spacing: 0;
+    }
+
+    #portrait {
+      color: var(--primary);
+      opacity: .92;
+    }
+
+    #banner {
+      color: var(--primary);
+      text-shadow: 0 0 18px color-mix(in srgb, var(--primary) 30%, transparent);
+    }
+
     .surname {
-      font-family: var(--pixel);
-      font-size: clamp(7px, 1.1vw, 11px);
-      color: var(--pink);
-      letter-spacing: 6px;
-      margin-bottom: 28px;
-      text-shadow: 0 0 12px rgba(255, 79, 163, 0.5);
-    }
-
-    .diamond {
-      color: var(--pink);
-    }
-
-    .tagline-wrap {
-      margin-bottom: 20px;
-      overflow: hidden;
+      color: var(--accent);
+      letter-spacing: .34em;
+      font-size: clamp(9px, 1.35vw, 13px);
+      margin: .9em 0 1.5em;
     }
 
     .tagline {
-      font-size: 12.5px;
-      color: var(--text-dim);
-      border-right: 2px solid var(--cyan);
-      white-space: nowrap;
-      overflow: hidden;
-      width: 0;
+      color: var(--secondary);
+      font-size: clamp(11px, 1.5vw, 15px);
+      min-height: 1.6em;
+      margin-bottom: 1.3em;
     }
 
-    .tagline.animate {
-      animation: typing 2.2s steps(60, end) 0.5s forwards, cursorBlink 0.8s step-end infinite;
+    .tagline .caret {
+      color: var(--accent);
+      animation: blink 1s steps(1, end) infinite;
     }
 
-    @keyframes typing {
-      to {
-        width: 100%
-      }
-    }
-
-    @keyframes cursorBlink {
-
-      0%,
-      100% {
-        border-color: var(--cyan)
-      }
-
+    @keyframes blink {
       50% {
-        border-color: transparent
+        opacity: 0;
       }
     }
 
     .bio {
-      font-size: 12px;
-      color: var(--text-dim);
-      line-height: 2;
-      margin-bottom: 20px;
-      max-width: 480px;
-    }
-
-    .bio .hw {
       color: var(--text);
+      font-size: clamp(10.5px, 1.25vw, 13.5px);
+      max-width: 62ch;
+      opacity: .88;
     }
 
-    .bio .hc {
-      color: var(--cyan);
+    .bio p+p {
+      margin-top: .85em;
     }
 
-    .bio .hp {
-      color: var(--pink);
+    .bio b {
+      color: var(--accent);
+      font-weight: 500;
     }
 
-    .bio .ha {
-      color: var(--amber);
+    .meta-line {
+      margin-top: 1.6em;
+      color: var(--very-dim);
+      font-size: clamp(9.5px, 1.1vw, 12px);
     }
 
-    .last-pushed {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-style: italic;
+    .meta-line .k {
+      color: var(--dim-mid);
     }
 
-    .last-pushed .lp-msg {
-      color: var(--amber);
-    }
+    /* ── Section chrome, shared by every content pane ── */
 
-    /* bottom tab bar */
-    .bottom-bar {
-      grid-column: 1/-1;
-      border-top: 1px solid var(--border);
-      background: var(--bg2);
+    .hdr {
       display: flex;
-      align-items: center;
-      padding: 0 20px;
-      height: 46px;
-      gap: 2px;
-    }
-
-    .tab-btn {
-      font-family: var(--mono);
-      font-size: 13px;
-      padding: 6px 18px;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      color: var(--text-dim);
-      transition: all 0.2s;
-    }
-
-    .tab-btn.active {
-      background: var(--cyan);
-      color: #000;
-      font-weight: 700;
-    }
-
-    .tab-btn:not(.active):hover {
-      color: var(--cyan);
-    }
-
-    .controls-hint {
-      margin-left: auto;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    @media(max-width:600px) {
-      .controls-hint {
-        display: none;
-      }
-    }
-
-    /* Content area */
-    #content-area {
-      padding: 40px;
-      max-width: 980px;
-      margin: 0 auto;
-      width: 100%;
-      display: none;
-    }
-
-    #content-area.visible {
-      display: block;
-    }
-
-    @media(max-width:768px) {
-      #content-area {
-        padding: 20px;
-      }
-    }
-
-    .sec-hdr {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .sec-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--cyan);
-    }
-
-    .sec-sub {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 28px;
-    }
-
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 28px 0;
-    }
-
-    /* ─── PROJECTS ─── */
-    .proj-item {
-      display: flex;
-      gap: 14px;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--bg3);
-      opacity: 0;
-      transform: translateY(10px);
-      transition: opacity 0.3s, transform 0.3s;
-    }
-
-    .proj-item.in {
-      opacity: 1;
-      transform: none;
-    }
-
-    .proj-num {
-      color: var(--text-muted);
-      font-size: 11px;
-      width: 26px;
-      flex-shrink: 0;
-      padding-top: 3px;
-    }
-
-    .proj-body {
-      flex: 1;
-    }
-
-    .proj-hdr {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      align-items: baseline;
+      gap: .7em;
+      margin-bottom: .3em;
       flex-wrap: wrap;
-      margin-bottom: 6px;
+    }
+
+    .hdr .dia {
+      color: var(--accent);
+    }
+
+    .hdr .ttl {
+      color: var(--primary);
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: clamp(11px, 1.4vw, 15px);
+    }
+
+    .hdr .sub {
+      color: var(--very-dim);
+      font-size: 11.5px;
+    }
+
+    /* Exactly one rule under the heading — the TUI doesn't box things. */
+    .rule {
+      height: 1px;
+      background: var(--dim);
+      margin: .55em 0 1.7em;
+      opacity: .75;
+    }
+
+    .sub-ttl {
+      color: var(--accent);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-size: 11px;
+      margin: 2em 0 .9em;
+    }
+
+    .sub-ttl:first-child {
+      margin-top: 0;
+    }
+
+    /* ── Projects ── */
+
+    .proj {
+      padding: .85em 0 .95em 1.1em;
+      border-left: 2px solid transparent;
+      margin-bottom: .35em;
+      cursor: pointer;
+      transition: border-color .16s, background .16s;
+    }
+
+    .proj:hover {
+      border-left-color: var(--dim-mid);
+    }
+
+    .proj.sel {
+      border-left-color: var(--primary);
+      background: linear-gradient(90deg,
+          color-mix(in srgb, var(--primary) 9%, transparent), transparent 70%);
+    }
+
+    .proj-top {
+      display: flex;
+      align-items: baseline;
+      gap: .8em;
+      flex-wrap: wrap;
     }
 
     .proj-name {
-      color: var(--cyan);
-      font-weight: 700;
-      font-size: 13.5px;
+      color: var(--text);
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .proj.sel .proj-name {
+      color: var(--primary);
     }
 
     .badge {
-      font-size: 9px;
-      padding: 2px 7px;
-      border: 1px solid;
+      font-size: 9.5px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: .15em .6em;
+      border: 1px solid currentColor;
+      border-radius: 2px;
+      opacity: .9;
     }
 
     .badge.live {
-      color: var(--green);
-      border-color: var(--green);
-      animation: livePulse 2s infinite;
+      color: var(--success);
     }
 
     .badge.wip {
-      color: var(--amber);
-      border-color: var(--amber);
+      color: var(--warning);
     }
 
     .badge.research {
-      color: var(--pink);
-      border-color: var(--pink);
+      color: var(--purple);
     }
 
-    @keyframes livePulse {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: 0.45
-      }
-    }
-
-    .proj-hl {
-      font-size: 10px;
-      color: var(--amber);
+    .auto-tag {
+      color: var(--very-dim);
+      font-size: 9.5px;
+      letter-spacing: .06em;
     }
 
     .proj-desc {
-      font-size: 12px;
-      color: var(--text-dim);
-      line-height: 1.8;
-      margin-bottom: 10px;
+      color: var(--text);
+      opacity: .74;
+      font-size: 12.5px;
+      margin: .45em 0 .55em;
+      max-width: 78ch;
     }
 
-    .proj-tags {
+    .proj-hl {
+      color: var(--accent);
+      font-size: 11.5px;
+      margin-bottom: .5em;
+    }
+
+    .tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 5px;
-      margin-bottom: 6px;
+      gap: .4em;
     }
 
     .tag {
       font-size: 10px;
-      padding: 2px 7px;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      opacity: 0;
-      transform: scale(0.85);
-      transition: opacity 0.2s, transform 0.2s;
+      color: var(--dim-mid);
+      border: 1px solid var(--dim);
+      border-radius: 2px;
+      padding: .1em .5em;
     }
 
-    .tag.in {
-      opacity: 1;
-      transform: none;
-    }
-
-    .proj-gh {
+    .proj-link {
+      display: inline-block;
+      margin-top: .5em;
+      color: var(--primary);
       font-size: 11px;
-      color: var(--amber);
       text-decoration: none;
+      opacity: .8;
     }
 
-    .proj-gh:hover {
+    .proj-link:hover {
       text-decoration: underline;
-    }
-
-    /* ─── ABOUT ─── */
-    .greeting {
-      font-size: 13px;
-      color: var(--cyan);
-      margin-bottom: 24px;
-    }
-
-    .subsection-title {
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--pink);
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .subsection-title::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-
-    .exp-entry {
-      margin-bottom: 22px;
-      opacity: 0;
-      transform: translateX(-8px);
-      transition: opacity 0.4s, transform 0.4s;
-    }
-
-    .exp-entry.in {
       opacity: 1;
-      transform: none;
     }
 
-    .exp-role {
-      font-weight: 700;
-      color: var(--amber);
-      font-size: 13px;
-      margin-bottom: 2px;
+    /* ── Experience / education ── */
+
+    .entry {
+      margin-bottom: 1.9em;
+      padding-left: 1.1em;
+      border-left: 2px solid var(--dim);
     }
 
-    .exp-co {
-      color: var(--cyan);
+    .entry-role {
+      color: var(--primary);
+      font-weight: 500;
+      font-size: 13.5px;
+    }
+
+    .entry-org {
+      color: var(--accent);
       font-size: 12px;
-      margin-bottom: 2px;
     }
 
-    .exp-period {
-      color: var(--text-muted);
+    .entry-period {
+      color: var(--very-dim);
       font-size: 11px;
-      margin-bottom: 8px;
+      margin-bottom: .55em;
     }
 
-    .exp-bullets {
+    .entry ul {
       list-style: none;
     }
 
-    .exp-bullets li {
+    .entry li {
+      color: var(--text);
+      opacity: .78;
       font-size: 12px;
-      color: var(--text-dim);
-      line-height: 1.7;
-      padding-left: 14px;
+      padding-left: 1.3em;
       position: relative;
-      margin-bottom: 3px;
+      margin-bottom: .3em;
+      max-width: 82ch;
     }
 
-    .exp-bullets li::before {
-      content: '▶';
+    .entry li::before {
+      content: '▸';
       position: absolute;
       left: 0;
-      color: var(--cyan);
-      font-size: 8px;
-      top: 4px;
+      color: var(--dim-mid);
     }
 
-    .skills-wrap {
+    /* ── Skills ── */
+
+    .skill {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 18px;
-    }
-
-    .sk-cat-name {
-      font-size: 10px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--cyan);
-      margin-bottom: 6px;
-    }
-
-    .sk-list {
-      font-size: 11px;
-      color: var(--text-dim);
-      line-height: 2;
-    }
-
-    .drives-me {
-      font-size: 12.5px;
-      color: var(--text-dim);
-      line-height: 2;
-      border-left: 2px solid var(--pink);
-      padding-left: 16px;
-    }
-
-    .drives-me em {
-      color: var(--text);
-      font-style: normal;
-    }
-
-    .resume-link {
-      display: inline-flex;
+      grid-template-columns: 13ch 1fr 4ch;
+      gap: .8em;
       align-items: center;
-      gap: 6px;
+      margin-bottom: .42em;
+    }
+
+    .skill-name {
+      color: var(--text);
+      opacity: .85;
       font-size: 12px;
-      color: var(--amber);
-      text-decoration: none;
-      margin-top: 18px;
-      border-bottom: 1px solid rgba(255, 183, 0, 0.3);
-      padding-bottom: 2px;
     }
 
-    .resume-link:hover {
-      border-color: var(--amber);
+    .bar {
+      height: 7px;
+      background: var(--dim);
+      border-radius: 1px;
+      overflow: hidden;
     }
 
-    /* ─── CONTACTS ─── */
-    .contact-item {
+    .bar>i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--primary);
+      transition: width .7s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .skill-pct {
+      color: var(--very-dim);
+      font-size: 10.5px;
+      text-align: right;
+    }
+
+    .group {
+      margin-bottom: .7em;
+      font-size: 12px;
+      max-width: 84ch;
+    }
+
+    .group .cat {
+      color: var(--accent);
+    }
+
+    .group .items {
+      color: var(--text);
+      opacity: .76;
+    }
+
+    /* ── Contacts ── */
+
+    .contact {
       display: flex;
-      align-items: flex-start;
-      gap: 16px;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--bg3);
+      align-items: center;
+      gap: 1em;
+      padding: .7em 0;
+      border-bottom: 1px solid var(--dim);
       text-decoration: none;
-      color: inherit;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 0.3s, transform 0.3s;
+      flex-wrap: wrap;
     }
 
-    .contact-item.in {
+    .contact:last-of-type {
+      border-bottom: 0;
+    }
+
+    .contact .ico {
+      color: var(--dim-mid);
+      width: 4ch;
+    }
+
+    .contact .lbl {
+      color: var(--accent);
+      width: 11ch;
+      font-size: 12px;
+    }
+
+    .contact .val {
+      color: var(--text);
+      opacity: .85;
+      font-size: 12.5px;
+      word-break: break-all;
+    }
+
+    .contact:hover .val {
+      color: var(--primary);
       opacity: 1;
-      transform: none;
-    }
-
-    .ci-icon {
-      color: var(--cyan);
-      font-size: 13px;
-      width: 36px;
-      flex-shrink: 0;
-      font-style: normal;
-    }
-
-    .ci-label {
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
-
-    .ci-val {
-      font-size: 13px;
-      color: var(--text-dim);
-      transition: color 0.2s;
-    }
-
-    .contact-item:hover .ci-val {
-      color: var(--cyan);
     }
 
     .ssh-box {
-      margin-top: 28px;
-      padding: 16px 20px;
-      border: 1px solid var(--border);
-      background: var(--bg2);
-      font-size: 12px;
+      margin-top: 2em;
+      padding: 1.1em 1.3em;
+      border: 1px solid var(--dim);
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--primary) 4%, transparent);
       cursor: pointer;
-      transition: border-color 0.3s;
     }
 
     .ssh-box:hover {
-      border-color: var(--cyan);
+      border-color: var(--dim-mid);
     }
 
-    .ssh-note {
-      color: var(--text-dim);
-      margin-bottom: 8px;
+    .ssh-box .lead {
+      color: var(--very-dim);
+      font-size: 11px;
+      margin-bottom: .5em;
     }
 
-    .ssh-note span {
-      color: var(--cyan);
+    .ssh-box code {
+      color: var(--success);
+      font-size: clamp(11px, 1.5vw, 14px);
+      word-break: break-all;
     }
 
-    .ssh-cmd-row {
+    /* ── /now ── */
+
+    .now-list {
+      list-style: none;
+      margin-bottom: 1.7em;
+    }
+
+    .now-list li {
+      color: var(--text);
+      opacity: .8;
+      font-size: 12.5px;
+      padding-left: 1.4em;
+      position: relative;
+      margin-bottom: .34em;
+      max-width: 80ch;
+    }
+
+    .now-list li::before {
+      content: '·';
+      position: absolute;
+      left: .35em;
+      color: var(--accent);
+    }
+
+    /* ── Resume ── */
+
+    .resume-cta {
+      display: inline-block;
+      margin-top: 1.4em;
+      color: var(--bg);
+      background: var(--primary);
+      padding: .55em 1.3em;
+      border-radius: 2px;
+      text-decoration: none;
+      font-size: 12px;
+      letter-spacing: .06em;
+    }
+
+    .resume-cta:hover {
+      background: var(--accent);
+    }
+
+    /* ═══ FOOTER — the TUI's tab bar + status line ═══ */
+
+    #footer {
+      background: var(--footer-bg);
+      border-top: 1px solid var(--dim);
       display: flex;
       align-items: center;
-      gap: 8px;
-      color: var(--amber);
+      gap: .2em;
+      padding: 0 clamp(8px, 1.6vw, 16px);
+      padding-bottom: env(safe-area-inset-bottom);
+      min-height: 34px;
+      overflow-x: auto;
+      scrollbar-width: none;
     }
 
-    .ssh-copy-hint {
+    #footer::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab {
+      background: none;
+      border: 0;
+      cursor: pointer;
+      font-family: var(--mono);
+      color: var(--footer-text);
+      font-size: clamp(10px, 1.25vw, 12.5px);
+      padding: .5em .85em;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color .14s, border-color .14s;
+    }
+
+    .tab:hover {
+      color: var(--text);
+    }
+
+    .tab.on {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .spacer {
+      flex: 1 1 auto;
+      min-width: .5em;
+    }
+
+    .status {
+      color: var(--footer-text);
+      font-size: clamp(9px, 1.05vw, 11.5px);
+      white-space: nowrap;
+      display: flex;
+      gap: .9em;
+      align-items: center;
+    }
+
+    .status .hint {
+      color: var(--very-dim);
+    }
+
+    @media (max-width: 860px) {
+      .status .hint {
+        display: none;
+      }
+    }
+
+    @media (max-width: 560px) {
+      #st-clock {
+        display: none;
+      }
+    }
+
+    /* ═══ COMMAND PALETTE ═══ */
+
+    #palette {
+      position: fixed;
+      inset: 0;
+      z-index: 8000;
+      display: none;
+      background: rgba(0, 0, 0, .62);
+      backdrop-filter: blur(3px);
+      padding-top: 12vh;
+      justify-content: center;
+    }
+
+    #palette.on {
+      display: flex;
+    }
+
+    .pal-box {
+      width: min(620px, 92vw);
+      height: fit-content;
+      max-height: 70vh;
+      background: var(--bg);
+      border: 1px solid var(--box);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pal-input {
+      display: flex;
+      align-items: center;
+      gap: .6em;
+      padding: .85em 1.1em;
+      border-bottom: 1px solid var(--dim);
+      color: var(--primary);
+    }
+
+    .pal-input input {
+      flex: 1;
+      background: none;
+      border: 0;
+      outline: 0;
+      font-family: var(--mono);
+      font-size: 13.5px;
+      color: var(--text);
+    }
+
+    .pal-list {
+      overflow-y: auto;
+    }
+
+    .pal-item {
+      padding: .55em 1.1em;
+      cursor: pointer;
+      display: flex;
+      align-items: baseline;
+      gap: .8em;
+      font-size: 12.5px;
+      color: var(--text);
+      opacity: .8;
+    }
+
+    .pal-item .kind {
+      color: var(--very-dim);
+      font-size: 10px;
       margin-left: auto;
-      font-size: 11px;
-      color: var(--text-muted);
-      transition: color 0.2s;
     }
 
-    .ssh-box:hover .ssh-copy-hint {
-      color: var(--cyan);
+    .pal-item.sel {
+      background: color-mix(in srgb, var(--primary) 14%, transparent);
+      color: var(--primary);
+      opacity: 1;
     }
 
-    @keyframes sshFlash {
-      from {
-        background: rgba(0, 229, 255, 0.1)
-      }
-
-      to {
-        background: var(--bg2)
-      }
+    .pal-empty {
+      padding: 1.2em;
+      color: var(--very-dim);
+      font-size: 12px;
     }
 
-    /* ─── GLITCH ─── */
-    @keyframes glitch {
+    /* ═══ TOAST ═══ */
 
-      0%,
-      100% {
-        clip-path: none;
-        transform: none;
-      }
-
-      4% {
-        clip-path: polygon(0 24px, 100% 24px, 100% 30px, 0 30px);
-        transform: skew(-0.4deg);
-      }
-
-      8% {
-        clip-path: none;
-        transform: none;
-      }
-
-      14% {
-        clip-path: polygon(0 62px, 100% 62px, 100% 68px, 0 68px);
-        transform: translate(-3px);
-      }
-
-      18% {
-        clip-path: none;
-        transform: none;
-      }
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 58px;
+      transform: translateX(-50%) translateY(8px);
+      background: var(--footer-bg);
+      border: 1px solid var(--box);
+      color: var(--primary);
+      font-size: 11.5px;
+      padding: .5em 1.1em;
+      border-radius: 3px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+      z-index: 8500;
     }
 
-    .glitch {
-      animation: glitch 5s infinite;
+    #toast.on {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
 
-    /* ═══════════════════════════════════════════════════════
-       RESPONSIVE — TABLET (≤ 800px)
-       ═══════════════════════════════════════════════════════ */
-    @media (max-width: 800px) {
-      /* Name panel first, portrait below */
-      .portrait-panel { order: 2; min-height: 220px; }
-      .name-panel     { order: 1; }
+    /* ═══ RESPONSIVE ═══ */
 
-      /* Scale braille portrait to fit narrower viewport */
-      #portrait-pre {
-        font-size: clamp(5px, 1.4vw, 8px);
-        transform-origin: top center;
+    /* Below 900px the portrait and banner can't sit side by side at a
+       legible size, so the home screen stacks — the same call the TUI
+       makes when the terminal gets narrow. */
+    @media (max-width: 900px) {
+      #pane-home.on {
+        grid-template-columns: 1fr;
+        gap: clamp(10px, 3vw, 22px);
+        align-content: start;
+        padding-top: clamp(14px, 5vw, 30px);
       }
 
-      /* Tagline: stop the nowrap animation, let it flow */
-      .tagline {
-        white-space: normal;
-        width: 100% !important;
-        overflow: visible;
-        border-right: none;
-        animation: none;
-      }
-      .tagline.animate {
-        animation: none;
-        width: 100% !important;
-      }
-
-      /* SSH box — wrap long command on narrower screens */
-      .ssh-cmd-row { flex-wrap: wrap; }
-      .ssh-cmd-row > span:first-child {
-        word-break: break-all;
-        font-size: 11px;
+      #portrait {
+        justify-self: center;
       }
     }
 
-    /* ═══════════════════════════════════════════════════════
-       RESPONSIVE — PHONE (≤ 480px)
-       ═══════════════════════════════════════════════════════ */
-    @media (max-width: 480px) {
-      body { font-size: 13px; }
-
-      /* Show portrait but scale it way down for phone screens */
-      .portrait-panel {
-        min-height: unset;
-        max-height: 260px;
-        overflow: hidden;
-        padding: 16px 12px;
-        align-items: flex-start;
-        justify-content: center;
+    /* Landscape phones: the portrait goes first, the words matter more. */
+    @media (max-height: 460px) and (max-width: 900px) {
+      #portrait {
+        display: none;
       }
+    }
 
-      /* Tiny font so the braille art fits in ~360px width */
-      #portrait-pre {
-        font-size: 4.5px !important;
-        line-height: 1.3;
-        letter-spacing: 0;
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .001ms !important;
+        transition-duration: .001ms !important;
       }
-
-      .name-panel { padding: 20px 16px; }
-      .name-pixel { font-size: clamp(16px, 5.5vw, 22px); }
-      .surname    { font-size: 7px; letter-spacing: 3px; margin-bottom: 20px; }
-      .bio        { font-size: 11.5px; }
-      .last-pushed { font-size: 10px; }
-
-      /* Larger touch targets on tab bar */
-      .bottom-bar { padding: 0 4px; height: 50px; }
-      .tab-btn    { font-size: 11px; padding: 8px 10px; }
-
-      /* Boot & alert screens */
-      #boot-text   { font-size: 11px; line-height: 2; }
-      .alert-title { font-size: 12px; }
-      .alert-body  { font-size: 10px; }
-
-      /* Content sections */
-      #content-area { padding: 16px 14px; }
-      .sec-sub      { margin-bottom: 20px; }
-
-      /* Projects */
-      .proj-desc { font-size: 11.5px; }
-      .proj-hdr  { gap: 4px; }
-
-      /* SSH box in contacts */
-      .ssh-box { padding: 12px 14px; }
-      .ssh-cmd-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
-      }
-      .ssh-cmd-row > span:first-child {
-        font-size: 10.5px;
-        word-break: break-all;
-      }
-      .ssh-copy-hint { margin-left: 0; font-size: 10px; }
-
-      /* Skills: 2-col grid on phone instead of auto-fill */
-      .skills-wrap { grid-template-columns: 1fr 1fr; gap: 12px; }
-
-      /* Experience entries */
-      .exp-role { font-size: 12px; }
-      .exp-co   { font-size: 11px; }
-      .exp-bullets li { font-size: 11px; }
     }
   </style>
 </head>
 
 <body>
 
-  <canvas id="matrix-canvas"></canvas>
+  <canvas id="matrix"></canvas>
 
-  <div id="boot-screen">
-    <div id="boot-text"></div>
+  <div id="boot">
+    <pre id="boot-text"></pre>
   </div>
 
-  <div id="alert-screen">
-    <div style="text-align:center;font-family:var(--mono);">
+  <div id="alert">
+    <div>
       <div class="alert-title">⚠ UNAUTHORIZED ACCESS DETECTED ⚠</div>
       <div class="alert-body">
         Intruder identified at: <span id="alert-ip">---</span><br>
         This system is private property.<br>
         Connection origin has been logged.<br>
         Initiating trace protocol...<br>
-        <span id="trace-bar">[░░░░░░░░░░] 0%</span><br>
+        <span id="trace">[░░░░░░░░░░] 0%</span><br>
         Notifying authorities...
       </div>
-      <div class="alert-joke" id="alert-joke">
-        just kidding. welcome. :)
-      </div>
+      <div class="alert-joke" id="joke">just kidding. welcome. :)</div>
     </div>
   </div>
 
-  <div id="portfolio">
+  <div class="skip" id="skip">press any key to skip</div>
 
-    <div id="home-screen">
+  <!-- ═══ THE TERMINAL ═══ -->
+  <div id="term">
 
-      <!-- LEFT: braille portrait (matches SSH TUI) -->
-      <div class="portrait-panel">
-        <canvas id="portrait-canvas" width="1" height="1"></canvas>
-        <pre id="portrait-pre"></pre>
-      </div>
+    <div id="screen">
 
-      <!-- RIGHT: name + bio -->
-      <div class="name-panel">
-        <div class="name-pixel glitch">
-          <span>MOHITH</span>
-          <span>AKSHAY</span>
-        </div>
-        <div class="surname">· D U G G I R A L A ·</div>
-
-        <div class="tagline-wrap">
-          <div class="tagline">is an engineer, builder &amp; creator who turns ideas into products.</div>
-        </div>
-
-        <p class="bio">
-          Founder &amp; Lead Engineer of <span class="hp">Webcraft Studios</span>,
-          building full-stack apps, Computer Vision pipelines,
-          and scalable AI perception systems.<br><br>
-          <span class="hw">B.Tech in Electronics &amp; Computer Engineering</span> @
-          <span class="hc">Manipal Institute of Technology</span>
-          (Aug 2023–Jul 2027), Bengaluru.<br><br>
-          President of <span class="ha">MBOSC</span> (Manipal Bengaluru Open Source Community).<br><br>
-          Former CV Research Intern at <span class="hc">ISRO – LEOS</span>.
-        </p>
-
-        <div class="last-pushed" id="last-pushed">
-          last pushed: <span class="lp-msg">"..."</span> · fetching...
+      <!-- HOME -->
+      <div class="pane" id="pane-home">
+        <pre class="art" id="portrait"></pre>
+        <div>
+          <pre class="art" id="banner"></pre>
+          <div class="surname">· D U G G I R A L A ·</div>
+          <div class="tagline" id="tagline"></div>
+          <div class="bio" id="bio"></div>
+          <div class="meta-line" id="meta"></div>
         </div>
       </div>
-
-      <!-- TAB BAR -->
-      <div class="bottom-bar">
-        <button class="tab-btn active" data-tab="projects" onclick="switchTab('projects')">Projects</button>
-        <button class="tab-btn" data-tab="about" onclick="switchTab('about')">About</button>
-        <button class="tab-btn" data-tab="contacts" onclick="switchTab('contacts')">Contacts</button>
-        <span class="controls-hint">[← → tabs · ↑↓ browse · q quit]</span>
-      </div>
-    </div>
-
-    <!-- CONTENT AREA -->
-    <div id="content-area">
 
       <!-- PROJECTS -->
-      <div id="tab-projects" class="tab-pane">
-        <div class="sec-hdr"><span class="diamond">♦</span><span class="sec-title">Projects</span></div>
-        <div class="sec-sub">Things I've built</div>
-        <div id="projects-list"></div>
+      <div class="pane" id="pane-projects">
+        <div class="hdr"><span class="dia">♦</span><span class="ttl">Projects</span>
+          <span class="sub" id="proj-count"></span>
+        </div>
+        <div class="rule"></div>
+        <div id="proj-list"></div>
       </div>
 
       <!-- ABOUT -->
-      <div id="tab-about" class="tab-pane" style="display:none">
-        <div class="sec-hdr"><span class="diamond">♦</span><span class="sec-title">Experience</span></div>
-        <div class="greeting" id="time-greeting"></div>
-
-        <div style="margin-bottom:28px">
-          <div class="subsection-title">Work</div>
-
-          <div class="exp-entry">
-            <div class="exp-role">Computer Vision Research Intern</div>
-            <div class="exp-co">ISRO – LEOS</div>
-            <div class="exp-period">Dec 2025 – Jan 2026</div>
-            <ul class="exp-bullets">
-              <li>Synthetic data generation with BlenderProc — 6,000+ photo-realistic annotated images, COCO/RLE labels
-              </li>
-              <li>YOLOv7+Segmentation on NVIDIA Jetson via TensorRT — 22 FPS real-time inference</li>
-              <li>GAN-based sim-to-real style transfer (Unreal Engine 5 + NASA SPICE)</li>
-              <li>Reduced synthetic data generation time by 70% through path-tracing benchmarking</li>
-            </ul>
-          </div>
-
-          <div class="exp-entry">
-            <div class="exp-role">Founder &amp; Lead Engineer</div>
-            <div class="exp-co">Webcraft Studios</div>
-            <div class="exp-period">Jan 2025 – Present</div>
-            <ul class="exp-bullets">
-              <li>Founded and scaled to international SaaS clients including Myntra Minis (Flipkart) and Str8Fire.io
-              </li>
-              <li>Full-stack platforms — React, Next.js, Node.js, PostgreSQL with Stripe billing &amp; analytics</li>
-              <li>Built structured delivery pipeline; reduced average cycle time by 30%</li>
-            </ul>
-          </div>
-
-          <div class="exp-entry">
-            <div class="exp-role">Software Engineering Intern</div>
-            <div class="exp-co">SenseOps Tech Solutions</div>
-            <div class="exp-period">May 2025 – Jul 2025</div>
-            <ul class="exp-bullets">
-              <li>Rebuilt production website — mobile-first responsive design, improved Lighthouse scores</li>
-              <li>Designed custom UDP/TCP protocol for distributed vibration sensor network (10+ nodes)</li>
-            </ul>
-          </div>
+      <div class="pane" id="pane-about">
+        <div class="hdr"><span class="dia">♦</span><span class="ttl">About</span>
+          <span class="sub" id="greeting"></span>
         </div>
-
-        <div class="divider"></div>
-
-        <div style="margin-bottom:28px">
-          <div class="subsection-title">Skills</div>
-          <div class="skills-wrap">
-            <div>
-              <div class="sk-cat-name">AI / ML</div>
-              <div class="sk-list">PyTorch · TensorFlow · LoRA · GGUF · YOLOv7 · TensorRT · OpenCV · ONNX · BlenderProc
-              </div>
-            </div>
-            <div>
-              <div class="sk-cat-name">Languages</div>
-              <div class="sk-list">Python · Go · TypeScript · JavaScript · C/C++ · SQL · HTML/CSS</div>
-            </div>
-            <div>
-              <div class="sk-cat-name">Web / Backend</div>
-              <div class="sk-list">React · Next.js · Node.js · FastAPI · Firebase · PostgreSQL · MongoDB · Stripe</div>
-            </div>
-            <div>
-              <div class="sk-cat-name">Tools</div>
-              <div class="sk-list">Docker · Git · CUDA · NVIDIA Jetson · Linux · AWS · Vercel · Figma · Unreal Engine 5
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div>
-          <div class="subsection-title">What drives me</div>
-          <p class="drives-me">
-            Shipping things that <em>actually work in production</em> —
-            from a live satellite CV pipeline at ISRO,
-            to a 62M-parameter LLM that outperforms CodeLLaMA-7B (which is 80× larger),
-            to a live autonomous trading system,
-            to this SSH portfolio you could be in right now.
-            <br><br>
-            The constraint isn't motivation. It's compute, time, and taste.
-          </p>
-          <a href="https://github.com/Trafalgar-2006/portfolio/raw/master/Mohith_Akshay_Duggirala_Resume.pdf"
-            target="_blank" class="resume-link">
-            Resume PDF →
-          </a>
-        </div>
+        <div class="rule"></div>
+        <div id="about-body"></div>
       </div>
 
       <!-- CONTACTS -->
-      <div id="tab-contacts" class="tab-pane" style="display:none">
-        <div class="sec-hdr"><span class="diamond">♦</span><span class="sec-title">Contacts</span></div>
-        <div class="sec-sub">Let's connect! Feel free to reach out.</div>
-
-        <a href="mailto:d.mohithakshay@gmail.com" class="contact-item">
-          <span class="ci-icon">(@)</span>
-          <div>
-            <div class="ci-label">Email</div>
-            <div class="ci-val">d.mohithakshay@gmail.com</div>
-          </div>
-        </a>
-        <a href="https://webcraftstudios.co.in" target="_blank" rel="noopener noreferrer" class="contact-item">
-          <span class="ci-icon">(~)</span>
-          <div>
-            <div class="ci-label">Website</div>
-            <div class="ci-val">webcraftstudios.co.in</div>
-          </div>
-        </a>
-        <a href="https://linkedin.com/in/dmohithakshay" target="_blank" rel="noopener noreferrer" class="contact-item">
-          <span class="ci-icon">(in)</span>
-          <div>
-            <div class="ci-label">LinkedIn</div>
-            <div class="ci-val">linkedin.com/in/dmohithakshay</div>
-          </div>
-        </a>
-        <a href="https://github.com/trafalgar-2006" target="_blank" rel="noopener noreferrer" class="contact-item">
-          <span class="ci-icon">(gh)</span>
-          <div>
-            <div class="ci-label">GitHub</div>
-            <div class="ci-val">github.com/trafalgar-2006</div>
-          </div>
-        </a>
-
-        <div class="ssh-box" onclick="copySSH(this)">
-          <div class="ssh-note">You're viewing the web version. For the full experience:</div>
-          <div class="ssh-cmd-row">
-            <span>$ ssh ssh.mohith.is-a.dev -p 41074</span>
-            <span class="ssh-copy-hint">[ click to copy ]</span>
-          </div>
-        </div>
-
-        <div style="margin-top:20px;font-size:11px;color:var(--text-muted);">
-          Built with Go + Bubbletea + Wish ·
-          <a href="https://github.com/trafalgar-2006/portfolio" target="_blank" rel="noopener noreferrer"
-            style="color:var(--text-muted);">github.com/trafalgar-2006/portfolio</a>
+      <div class="pane" id="pane-contacts">
+        <div class="hdr"><span class="dia">♦</span><span class="ttl">Contacts</span></div>
+        <div class="rule"></div>
+        <div id="contact-list"></div>
+        <div class="ssh-box" id="ssh-box-contacts">
+          <div class="lead">this portfolio also runs over SSH — same screens, in your terminal</div>
+          <code>ssh ssh.mohith.is-a.dev -p 41074</code>
         </div>
       </div>
 
-    </div><!-- /content-area -->
-  </div><!-- /portfolio -->
+      <!-- RESUME -->
+      <div class="pane" id="pane-resume">
+        <div class="hdr"><span class="dia">♦</span><span class="ttl">Resume</span></div>
+        <div class="rule"></div>
+        <div id="resume-body"></div>
+      </div>
+
+      <!-- NOW -->
+      <div class="pane" id="pane-now">
+        <div class="hdr"><span class="dia">♦</span><span class="ttl">/now</span>
+          <span class="sub">what I'm doing at the moment</span>
+        </div>
+        <div class="rule"></div>
+        <div id="now-body"></div>
+      </div>
+
+      <!-- HELP -->
+      <div class="pane" id="pane-help">
+        <div class="hdr"><span class="dia">♦</span><span class="ttl">Keys</span></div>
+        <div class="rule"></div>
+        <div id="help-body"></div>
+      </div>
+
+    </div>
+
+    <!-- TAB BAR + STATUS LINE -->
+    <div id="footer">
+      <button class="tab" data-tab="home">Home</button>
+      <button class="tab" data-tab="projects">Projects</button>
+      <button class="tab" data-tab="about">About</button>
+      <button class="tab" data-tab="contacts">Contacts</button>
+      <button class="tab" data-tab="resume">Resume</button>
+      <button class="tab" data-tab="now">/now</button>
+      <span class="spacer"></span>
+      <span class="status">
+        <span class="hint">[← →] tabs · [/] palette · [t] theme · [?] keys</span>
+        <span id="st-theme"></span>
+        <span id="st-clock"></span>
+      </span>
+    </div>
+  </div>
+
+  <!-- COMMAND PALETTE -->
+  <div id="palette">
+    <div class="pal-box">
+      <div class="pal-input">
+        <span>❯</span>
+        <input id="pal-q" type="text" autocomplete="off" spellcheck="false" placeholder="jump to…">
+      </div>
+      <div class="pal-list" id="pal-list"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
 
   <script>
-    // ═══ MATRIX ═══
-    const canvas = document.getElementById('matrix-canvas');
-    const ctx = canvas.getContext('2d');
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    resize(); window.addEventListener('resize', () => { resize(); initCols(); });
+    'use strict';
 
-    const katakana = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-    const allChars = katakana + '0123456789ABCDEFｦｧｨｩｪｫｬｭｮｯ!@#$%';
+    /* ═══════════════════════════════════════════════════════════════════
+       ART — the same portrait and name banner the TUI renders.
+
+       Injected from views/home.go. TestWebArtMatchesTUI fails the build if
+       the two ever drift apart, which they had: the page was showing a
+       different face, at a different width, from the terminal.
+       ═══════════════════════════════════════════════════════════════════ */
+    /* GENERATED:BEGIN — tools/sync_web.go; edit views/home.go, not this */
+    const PORTRAIT = [
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢀⡀⡀⡀⠐⠐⡀⡀⡀⢀⡀⠠⡀⡀⡀⡂⡀⡀⡀⡀⡀⠠⡀⡀⡀⠐⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⠄⠅⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⠠⡀⡀⠂⡀⠂⠂⡀⡀⠄⠐⡀⠄⡀⢄⠄⡀⡀⠂⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⠂⡀⡀⡀⡀⡀⡀⢀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢀⠤⡀⡀⡀⠂⡀⡀⠄⠄⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⢀⡀⡀⡀⡀⡀⡀⠠⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢀⡄⡀⢀⢀⢀⡀⡀⠤⠒⡀⡀⡀⠁⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢠⢞⣡⢠⡀⠈⣴⣯⣛⣉⡻⢀⣩⡥⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⠂⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢀⡀⡀⡀⡀⢀⡀⣿⣾⣍⣷⣶⣶⣷⣵⣛⣿⣿⡿⢶⣭⢷⢶⣦⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⠠⡀⠐⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢀⣹⡶⣫⣿⠿⡵⡾⢫⣽⣷⣿⣿⣿⣿⣿⣿⣭⣍⡗⣿⠢⠂⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⠁⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⣴⣭⠻⣵⣾⣗⣿⣽⣿⣿⣿⣿⣿⣿⣷⣾⣿⣿⣿⣿⣿⡚⠻⢳⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢿⣏⣻⣿⣶⣿⣿⣿⣿⣿⣿⢿⣃⣞⣫⣿⣻⢝⣿⣿⣿⣿⣝⣏⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⠠⠁⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢀⡀⡀⣻⣿⣿⣿⣿⣷⣠⠭⢛⠒⠿⠿⣿⣿⣿⣿⣿⣴⣿⣯⢿⣟⢌⣹⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢕⣿⣿⣿⣿⡿⠋⢁⣀⣁⠛⣿⣦⡍⠻⢿⢿⢟⣿⣿⣿⣟⣿⣽⣿⠄⡦⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢸⣿⡟⣿⡿⠐⡀⡀⠉⡓⠳⣿⡟⠁⢭⢡⠦⣙⠻⣻⣯⣿⣿⣿⣽⣿⣶⡀⡀⡀⡀⠂⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡞⠋⣈⢻⠁⡀⡀⡀⡀⡀⠈⡀⠁⡀⢸⣞⣗⢍⠙⢲⣍⠯⣿⣿⢽⣩⠁⡄⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢸⠚⡀⡀⡀⢀⡀⡀⢤⢚⠃⡀⡀⡀⠈⠈⢥⣙⣻⡄⣷⢣⣿⣿⣟⡍⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⠄⡀⡀⡀⠒⣾⠂⡀⡀⣩⣇⣴⣤⣠⡀⡀⡀⢸⢣⣿⣿⣿⣧⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⣿⡀⡀⡀⡀⢸⣿⠓⠒⠒⢬⡍⢍⠡⢺⠂⡀⡀⣶⢿⣻⡟⠁⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢀⣼⡄⡀⡀⡀⡟⠙⣿⢿⣿⣶⣤⠉⡧⣼⠡⢠⢠⣿⠉⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⣿⡀⡀⡀⡀⡀⡀⡀⡀⠈⠛⣿⠿⣻⠁⡀⢀⢋⠁⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢿⡀⡀⡀⡄⡀⡀⠨⢍⣺⠗⠐⡀⢁⠖⡡⠹⠄⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⠰⠂⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢂⣀⡀⡀⡀⠈⠁⣁⠣⣒⠃⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⢀⣀⣀⣴⣶⣷⣿⣿⡀⡀⡀⡀⠈⡆⠰⣨⣒⢲⡖⡞⣊⠿⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⡀⣿⣃⣲⣸⠬⣏⡦⣭⣿⣯⣾⣿⣾⣿⡀⡀⡀⡀⡀⡀⢸⣎⡖⡒⢳⣚⡞⠈⡀⣵⣄⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⡀⡀⡀⡀⢠⣘⣉⣩⣟⣟⣿⣿⣟⣿⣟⡿⠋⡀⠁⡀⡀⡀⡀⡀⢀⢰⠥⠢⣬⠞⠁⡀⡀⠘⣿⣷⣏⡛⠦⣀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀",
+      "⡀⡀⡀⡀⠉⡀⠈⠉⠉⠉⠉⠉⡀⡀⡀⠈⠉⠉⡀⡀⡀⡀⡀⡀⡀⡀⡀⡀⠁⠁⠈⠁⡀⡀⡀⡀⡀⡀⠉⠉⠉⠉⠉⡀⡀⠈⠁⡀⡀⡀⡀⡀⡀⡀⡀⡀"
+    ];
+
+    const BANNER = [
+      "███╗   ███╗  ██████╗  ██╗  ██╗  ██╗  ████████╗  ██╗  ██╗",
+      "████╗ ████║ ██╔═══██╗ ██║  ██║  ██║  ╚══██╔══╝  ██║  ██║",
+      "██╔████╔██║ ██║   ██║ ███████║  ██║     ██║     ███████║",
+      "██║╚██╔╝██║ ██║   ██║ ██╔══██║  ██║     ██║     ██╔══██║",
+      "██║ ╚═╝ ██║ ╚██████╔╝ ██║  ██║  ██║     ██║     ██║  ██║",
+      "╚═╝     ╚═╝  ╚═════╝  ╚═╝  ╚═╝  ╚═╝     ╚═╝     ╚═╝  ╚═╝",
+      "",
+      " █████╗  ██╗ ██╗  ███████╗ ██╗  ██╗  █████╗   ██╗   ██╗",
+      "██╔══██╗ ██║ ██╔╝ ██╔════╝ ██║  ██║ ██╔══██╗  ╚██╗ ██╔╝",
+      "███████║ █████╔╝  ███████╗ ███████║ ███████║   ╚████╔╝ ",
+      "██╔══██║ ██╔═██╗  ╚════██║ ██╔══██║ ██╔══██║    ╚██╔╝  ",
+      "██║  ██║ ██║  ██╗ ███████║ ██║  ██║ ██║  ██║     ██║   ",
+      "╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚══════╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝     ╚═╝   "
+    ];
+
+    const TAGLINE = "is an engineer, builder & creator who turns ideas into products.";
+    /* GENERATED:END */
+
+    /* ═══ THEMES — mirrored from views/theme.go, cycled with [t] ═══ */
+    /* THEMES:BEGIN — tools/sync_web.go; edit views/theme.go, not this */
+    const THEMES = [
+      { name: "dracula", primary: "#8BE9FD", secondary: "#FF79C6", accent: "#F1FA8C", success: "#50FA7B", warning: "#FFB86C", purple: "#BD93F9", text: "#F8F8F2", dimMid: "#6272A4", dim: "#44475A", veryDim: "#565B7A", boxBorder: "#6272A4", footerBg: "#21222C", footerText: "#7D82A8", matrixHead: "#FFFFFF", matrixBright: "#50FA7B", matrixMid: "#00CC55", matrixDim: "#004422", matrixLocked: "#8BE9FD", starBright: "#F1FA8C", starDim: "#44475A" },
+      { name: "matrix", primary: "#00FF41", secondary: "#00DD33", accent: "#AAFFAA", success: "#00FF41", warning: "#99FF33", purple: "#00BB22", text: "#CCFFCC", dimMid: "#008822", dim: "#004411", veryDim: "#00702E", boxBorder: "#006622", footerBg: "#000C00", footerText: "#00B04A", matrixHead: "#FFFFFF", matrixBright: "#00FF41", matrixMid: "#00AA00", matrixDim: "#003300", matrixLocked: "#FFFFFF", starBright: "#00FF41", starDim: "#003311" },
+      { name: "amber", primary: "#FFAA00", secondary: "#FF7700", accent: "#FFE066", success: "#CCFF00", warning: "#FF5500", purple: "#FF9944", text: "#FFD080", dimMid: "#AA6600", dim: "#664400", veryDim: "#8A6A20", boxBorder: "#885500", footerBg: "#0A0600", footerText: "#C08830", matrixHead: "#FFEEAA", matrixBright: "#FFAA00", matrixMid: "#AA6600", matrixDim: "#441E00", matrixLocked: "#FFE066", starBright: "#FFE066", starDim: "#553300" },
+      { name: "nord", primary: "#88C0D0", secondary: "#B48EAD", accent: "#EBCB8B", success: "#A3BE8C", warning: "#D08770", purple: "#81A1C1", text: "#ECEFF4", dimMid: "#7A8899", dim: "#4C566A", veryDim: "#6E7A8F", boxBorder: "#5E81AC", footerBg: "#242933", footerText: "#8B9BB4", matrixHead: "#ECEFF4", matrixBright: "#88C0D0", matrixMid: "#5E81AC", matrixDim: "#2E3440", matrixLocked: "#EBCB8B", starBright: "#EBCB8B", starDim: "#3B4252" },
+      { name: "cyberpunk", primary: "#FF007F", secondary: "#00FFFF", accent: "#FFE600", success: "#00FF88", warning: "#FF6600", purple: "#CC00FF", text: "#FFFFFF", dimMid: "#AA44AA", dim: "#550055", veryDim: "#8A4477", boxBorder: "#880055", footerBg: "#0A000A", footerText: "#BE5C9C", matrixHead: "#FFFFFF", matrixBright: "#FF007F", matrixMid: "#AA0055", matrixDim: "#330011", matrixLocked: "#00FFFF", starBright: "#FFE600", starDim: "#440033" }
+    ];
+    /* THEMES:END */
+
+    let themeIdx = 0;
+
+    function applyTheme(i) {
+      const t = THEMES[i];
+      const r = document.documentElement.style;
+      r.setProperty('--primary', t.primary);
+      r.setProperty('--secondary', t.secondary);
+      r.setProperty('--accent', t.accent);
+      r.setProperty('--success', t.success);
+      r.setProperty('--warning', t.warning);
+      r.setProperty('--purple', t.purple);
+      r.setProperty('--text', t.text);
+      r.setProperty('--dim-mid', t.dimMid);
+      r.setProperty('--dim', t.dim);
+      r.setProperty('--very-dim', t.veryDim);
+      r.setProperty('--box', t.boxBorder);
+      r.setProperty('--footer-bg', t.footerBg);
+      r.setProperty('--footer-text', t.footerText);
+      document.getElementById('st-theme').textContent = t.name;
+      try { localStorage.setItem('theme', String(i)); } catch (_) { }
+    }
+
+    function cycleTheme() {
+      themeIdx = (themeIdx + 1) % THEMES.length;
+      applyTheme(themeIdx);
+      toast('theme: ' + THEMES[themeIdx].name);
+    }
+
+    /* ═══ FALLBACK CONTENT ═══
+       Used only when /api/content can't be reached — a failed fetch, or the
+       file opened straight off disk. The live payload replaces all of it. */
+    let DATA = {
+      name: 'Mohith Akshay Duggirala',
+      tagline: 'ML Engineer · Full-Stack Developer · Builder',
+      location: 'Bengaluru, Karnataka, India',
+      headline: 'AI/ML Engineer · Full-Stack Developer · Computer Vision',
+      drive: [],
+      resumeUrl: 'https://github.com/Trafalgar-2006/portfolio/raw/master/Mohith_Akshay_Duggirala_Resume.pdf',
+      projects: [],
+      contacts: [
+        { icon: '(@)', label: 'Email', value: 'd.mohithakshay@gmail.com' },
+        { icon: '(~)', label: 'Website', value: 'webcraftstudios.co.in' },
+        { icon: '(in)', label: 'LinkedIn', value: 'linkedin.com/in/dmohithakshay' },
+        { icon: '(gh)', label: 'GitHub', value: 'github.com/trafalgar-2006' }
+      ],
+      experience: [], education: [], skills: [], skillGroups: [],
+      now: { building: [], learning: [], reading: [], status: [] },
+      commit: 'unknown'
+    };
+
+    /* ═══ HELPERS ═══ */
+
+    const $ = id => document.getElementById(id);
+
+    const esc = s => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+    let toastTimer = null;
+    function toast(msg) {
+      const el = $('toast');
+      el.textContent = msg;
+      el.classList.add('on');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('on'), 1600);
+    }
+
+    // A bare host like "github.com/x" isn't a usable href on its own.
+    const href = v => /^https?:\/\//i.test(v) ? v
+      : /^[\w.+-]+@[\w.-]+$/.test(v) ? 'mailto:' + v
+        : 'https://' + v;
+
+    const SSH_CMD = 'ssh ssh.mohith.is-a.dev -p 41074';
+
+    /* ═══ ART SIZING ═══
+       The portrait and banner are fixed-width character grids. Rather than
+       let them wrap — which would shred the image — measure the font's real
+       advance width and pick a size that makes the grid fit the space. */
+    function fitArt() {
+      const pane = $('pane-home');
+      if (!pane.classList.contains('on')) return;
+
+      const cols = Math.max(
+        PORTRAIT.reduce((m, r) => Math.max(m, r.length), 0),
+        BANNER.reduce((m, r) => Math.max(m, r.length), 0)
+      );
+      if (!cols) return;
+
+      const stacked = window.innerWidth <= 900;
+      const cs = getComputedStyle(pane);
+      const pad = parseFloat(cs.paddingLeft || '0') + parseFloat(cs.paddingRight || '0');
+      const avail = stacked
+        ? pane.clientWidth - pad
+        : (pane.clientWidth - pad) * 0.46;
+
+      // Measure rather than assume 0.6em — a fallback font would skew it.
+      const probe = document.createElement('span');
+      probe.style.cssText =
+        'position:absolute;visibility:hidden;white-space:pre;font-family:var(--mono);font-size:100px';
+      probe.textContent = 'M'.repeat(cols);
+      document.body.appendChild(probe);
+      const per = probe.getBoundingClientRect().width / 100 / cols;
+      probe.remove();
+      if (!per) return;
+
+      let size = avail / (cols * per);
+
+      // Cap by height too, so tall art can't overflow a short viewport.
+      const budget = $('screen').clientHeight * (stacked ? 0.40 : 0.88);
+      size = Math.min(size, budget / (PORTRAIT.length * 1.04));
+      size = Math.max(3, Math.min(size, 15));
+
+      document.documentElement.style.setProperty('--art-size', size.toFixed(2) + 'px');
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       INTRO — matrix rain, the name crystallising out of it, boot, alert.
+       The same beats as the TUI, in the same order.
+       ═══════════════════════════════════════════════════════════════════ */
+
+    const canvas = $('matrix');
+    const ctx = canvas.getContext('2d');
+    const GLYPHS = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEF';
     const FS = 14;
-    let cols, drops;
-    function initCols() { cols = Math.floor(canvas.width / FS); drops = Array.from({ length: cols }, () => Math.random() * canvas.height / FS); }
-    initCols();
+    const CW = FS * 0.62; // cell width on the rain grid
+
+    let cols = 0, rows = 0, drops = [];
+    let locked = new Map(), pending = [], phase = 0;
+    let ticks = 0, phaseTick = 0;
+    let introDone = false, matrixRAF = null;
+
+    function sizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
+      canvas.style.width = window.innerWidth + 'px';
+      canvas.style.height = window.innerHeight + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cols = Math.max(1, Math.floor(window.innerWidth / CW));
+      rows = Math.max(1, Math.floor(window.innerHeight / FS));
+      drops = Array.from({ length: cols }, () => Math.random() * rows);
+      seedBanner();
+    }
+
+    // Queue every non-blank banner cell to be locked in. This is the TUI's
+    // "name solidification" — the name crystallising out of the rain.
+    function seedBanner() {
+      locked = new Map();
+      pending = [];
+      const bw = BANNER.reduce((m, r) => Math.max(m, r.length), 0);
+      const x0 = Math.floor((cols - bw) / 2);
+      const y0 = Math.floor((rows - BANNER.length) / 2);
+      if (x0 < 0 || y0 < 0) return; // no room — rain only, then boot
+      BANNER.forEach((row, ry) => {
+        for (let cx = 0; cx < row.length; cx++) {
+          if (row[cx] === ' ') continue;
+          pending.push([x0 + cx, y0 + ry, row[cx]]);
+        }
+      });
+      // Shuffle, so it crystallises rather than wipes across.
+      for (let i = pending.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const t = pending[i]; pending[i] = pending[j]; pending[j] = t;
+      }
+    }
 
     function drawMatrix() {
-      ctx.fillStyle = 'rgba(8,8,8,0.06)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.font = `${FS}px 'JetBrains Mono',monospace`;
+      const t = THEMES[themeIdx];
+      ctx.fillStyle = 'rgba(10,10,12,0.09)';
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+      ctx.font = FS + "px 'JetBrains Mono', monospace";
+      ctx.textBaseline = 'top';
+
       for (let i = 0; i < cols; i++) {
-        const ch = allChars[Math.floor(Math.random() * allChars.length)];
-        const r = Math.random();
-        ctx.fillStyle = r > .97 ? '#fff' : r > .75 ? '#00e5ff' : r > .45 ? 'rgba(0,180,220,0.65)' : 'rgba(0,80,120,0.35)';
-        ctx.fillText(ch, i * FS, drops[i] * FS);
-        if (drops[i] * FS > canvas.height && Math.random() > .975) drops[i] = 0;
-        drops[i]++;
+        const x = i * CW;
+        const y = Math.floor(drops[i]);
+        ctx.fillStyle = t.matrixHead;
+        ctx.fillText(GLYPHS[Math.floor(Math.random() * GLYPHS.length)], x, y * FS);
+        ctx.fillStyle = t.matrixMid;
+        ctx.fillText(GLYPHS[Math.floor(Math.random() * GLYPHS.length)], x, (y - 1) * FS);
+        if (drops[i] * FS > window.innerHeight && Math.random() > 0.975) drops[i] = 0;
+        drops[i] += 0.55;
       }
-    }
-    let mInt = setInterval(drawMatrix, 38);
 
-    // ═══ BOOT ═══
-    const bootLines = [
-      { t: 'Establishing SSH connection to ssh.mohith.is-a.dev:41074...', c: '' },
-      { t: 'SSH-2.0-OpenSSH_9.6p1 Ubuntu-3ubuntu13.5', c: 'b-dim', d: 320 },
-      { t: 'Server host key: ED25519 SHA256:7Kp2mXqRv...', c: 'b-dim', d: 580 },
-      { t: '', c: '', d: 700 },
-      { t: '[████▓░░░░░] Loading...   ÿÿÿ ▓▒░ ERR ░▒ CORRUPT', c: 'b-err', d: 820 },
-      { t: 'Connection interrupted. Signal lost.', c: 'b-err', d: 1300 },
-      { t: 'Attempting recovery...', c: 'b-amber', d: 1550 },
-      { t: '[██████████] Recovery successful.', c: 'b-ok', d: 2050 },
-      { t: '', c: '', d: 2150 },
-      { t: '[OK] Authenticated.', c: 'b-ok', d: 2250 },
-      { t: '[OK] Decrypting portfolio data...', c: 'b-ok', d: 2420 },
-      { t: '[OK] All systems nominal. Loading interface...', c: 'b-ok', d: 2620 },
+      // Phase 1: lock cells until the name is whole.
+      if (phase === 1) {
+        for (let n = 0; n < 7 && pending.length; n++) {
+          const cell = pending.pop();
+          locked.set(cell[0] + ',' + cell[1], cell[2]);
+        }
+        if (!pending.length) { phase = 2; phaseTick = ticks; }
+      }
+
+      // Redraw the locked name over the rain every frame so it stays solid.
+      if (locked.size) {
+        ctx.fillStyle = t.matrixLocked;
+        ctx.shadowColor = t.matrixLocked;
+        ctx.shadowBlur = 8;
+        locked.forEach((ch, key) => {
+          const p = key.split(',');
+          ctx.fillText(ch, p[0] * CW, p[1] * FS);
+        });
+        ctx.shadowBlur = 0;
+      }
+
+      ticks++;
+      if (phase === 0 && ticks > 70) phase = 1;
+      // If the banner didn't fit, phase 1 empties immediately; either way
+      // this hold is what ends the rain.
+      if (phase === 2 && ticks - phaseTick > 34) { startBoot(); return; }
+      matrixRAF = requestAnimationFrame(drawMatrix);
+    }
+
+    const BOOT_LINES = [
+      'ssh mohith@portfolio.local',
+      '',
+      "The authenticity of host 'portfolio.local' can't be established.",
+      'ED25519 key fingerprint is SHA256:mOh1thAksh4yDugg1r4l4P0rtf0li0.',
+      'Are you sure you want to continue connecting? yes',
+      '',
+      'Warning: Permanently added to the list of known hosts.',
+      'Last login: just now, from everywhere',
+      '',
+      'Loading portfolio ......... [ OK ]',
+      'Mounting projects ........ [ OK ]',
+      'Fetching commits ......... [ OK ]',
+      'Decrypting personality ... [ 0x4f2a ERR ]',
+      '  ! signal lost',
+      '  ! reacquiring ...',
+      'Decrypting personality ... [ OK ]',
+      '',
+      'welcome.'
     ];
 
-    setTimeout(() => {
-      clearInterval(mInt); mInt = setInterval(drawMatrix, 100);
-      const bs = document.getElementById('boot-screen');
-      const bt = document.getElementById('boot-text');
-      bs.classList.add('active');
-      let base = 0;
-      bootLines.forEach(({ t, c, d = base }, i) => {
-        const delay = typeof d === 'number' ? d : base;
-        base = delay + 280;
-        setTimeout(() => {
-          const s = document.createElement('span');
-          s.className = `bl ${c}`; s.textContent = t;
-          bt.appendChild(s);
-          requestAnimationFrame(() => requestAnimationFrame(() => s.classList.add('show')));
-        }, delay);
-      });
-      setTimeout(startAlert, 3100);
-    }, 2600);
-
-    // ═══ ALERT ═══
-    function startAlert() {
-      document.getElementById('boot-screen').classList.remove('active');
-      clearInterval(mInt);
-      canvas.style.transition = 'opacity 0.5s';
+    function startBoot() {
+      cancelAnimationFrame(matrixRAF);
       canvas.style.opacity = '0';
-
-      const as = document.getElementById('alert-screen');
-      as.classList.add('active');
-
-      const fakeIP = `${rnd(255)}.${rnd(255)}.${rnd(255)}.${rnd(255)}`;
-      document.getElementById('alert-ip').textContent = fakeIP;
-
-      let prog = 0;
-      const bar = document.getElementById('trace-bar');
-      const ti = setInterval(() => {
-        prog = Math.min(100, prog + rnd(14) + 3);
-        const f = Math.floor(prog / 10);
-        bar.textContent = `[${'█'.repeat(f)}${'░'.repeat(10 - f)}] ${prog}%`;
-        if (prog >= 100) clearInterval(ti);
-      }, 110);
-
-      setTimeout(() => document.getElementById('alert-joke').classList.add('show'), 1900);
-      setTimeout(() => {
-        as.classList.remove('active');
-        setTimeout(launchPortfolio, 400);
-      }, 3100);
-    }
-    function rnd(n) { return Math.floor(Math.random() * n); }
-
-    // ═══ PORTFOLIO LAUNCH ═══
-    function launchPortfolio() {
-      canvas.remove();
-      const p = document.getElementById('portfolio');
-      p.classList.add('visible');
-      // Bug 3 fix: trigger tagline animation now that portfolio is visible
-      document.querySelector('.tagline').classList.add('animate');
-      setTimeout(drawPortrait, 200);
-      setGreeting();
-      renderProjects();
-      // Bug 2 fix: animate projects on initial load, not just on tab click
-      setTimeout(animProjects, 120);
-      fetchCommit();
-      // Replace the fallback list with the live one from the server.
-      loadLiveContent();
+      $('boot').classList.add('on');
+      const out = $('boot-text');
+      let i = 0;
+      (function line() {
+        if (introDone) return;
+        if (i >= BOOT_LINES.length) { setTimeout(startAlert, 420); return; }
+        out.textContent += BOOT_LINES[i] + '\n';
+        // The corrupted line lingers, exactly like the TUI's does.
+        const pause = /ERR|signal|reacquiring/.test(BOOT_LINES[i]) ? 340
+          : (BOOT_LINES[i] === '' ? 40 : 105);
+        i++;
+        setTimeout(line, pause);
+      })();
     }
 
-    // ═══ BRAILLE PORTRAIT (text, mirrors SSH TUI) ═══
-    const portraitLines = [
-      " ⠄⠠⡀⠄⠠⠀⠄⠠⠀⠄⢠⠀⠄⡠⠀⡄⠠⠀⠀⠠⠀⠄⠠⠀⠄⠀⠀⠀⠀⠀⠠⢀⠀⠄⠠⠀⠄⠠⠀⠄⠠⠀⠄⠠⠀⠄⠠⠀⠄⡀",
-      " ⢈⠐⠠⢈⠡⠈⠄⠡⡈⢐⠠⢈⠐⠠⠁⠀⠀⠀⠠⠁⡈⠄⡑⠈⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠂⠁⠈⠄⠡⠈⠄⠡⠈⠄⠡⠈⠄⡁⢂⠐",
-      " ⠠⠌⡐⠂⠄⠡⢈⠐⡀⠢⠐⠂⢉⠐⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠁⠌⠠⠁⠌⠠⢁⠂⡐⠠⢈",
-      " ⡐⠠⠄⠡⢈⡐⢈⡐⠠⢁⡘⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠈⠄⡁⢂⠐⠠⢁⠂",
-      " ⠠⠁⠌⡐⠠⠐⠠⢀⠃⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠂⠐⡀⠂⠌⡐⠠⢈",
-      " ⠡⠘⠠⠄⡑⢈⡁⠂⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⠀⠀⠄⡁⠂⠄⡁⢂",
-      " ⠂⡡⢁⢂⠰⢀⠰⢁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠡⢀⠡⢂⠐⠠",
-      " ⠡⠐⣀⠢⠐⢂⠰⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⢁⠂⠤⠘⠠",
-      " ⡈⠔⡀⢂⠁⡂⠄⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠤⡈⠔⠠⠈⠀⠑⠢⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠐⠠⠈⠄⡑⠈",
-      " ⡁⠆⡈⠔⢂⠡⠌⠀⠀⠀⠀⠀⠀⠀⠀⣀⠂⡌⢀⠈⠀⡁⠀⠀⠀⠀⠀⣉⠒⠠⠄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠂⠠⠈⠄⡡",
-      " ⠐⡠⠁⢌⠠⠒⡈⠄⠀⠀⠀⠀⠀⠀⡐⠄⢮⣐⠣⣄⠡⠀⠄⠀⠀⢠⠰⢁⡀⠰⠁⠀⠑⠂⠤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡁⠆⡐",
-      " ⠊⠄⡑⠠⢂⠁⠆⢀⠠⠒⠤⢀⠀⡰⢈⡜⢮⣇⡛⢤⢋⡔⡂⢆⣡⢎⠶⣡⠀⠄⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠰⠀⠒⠠",
-      " ⡡⠘⠠⢁⠂⣉⠰⠀⠆⢠⡐⠡⢂⠡⠒⢌⠲⠩⠜⡀⠂⠈⠰⣎⡵⣮⢳⡡⠊⢄⡀⠂⡀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠄⡈⠤⠁",
-      " ⠡⠌⡁⠂⢌⠀⠆⢡⠚⡌⢡⠃⢌⠂⡉⠄⠃⠁⠀⠀⢤⡱⢃⡈⠀⠁⠃⠱⢁⠦⡐⢆⠠⢄⠠⡀⠀⠀⠀⠀⠀⠀⠀⠀⠠⠐⠠⢁⢂⠡",
-      " ⡐⡈⠤⠑⡀⠊⠌⡄⠁⠈⠤⣉⠰⡈⢐⠈⠄⠀⠠⠙⢢⠣⠅⡀⠀⠀⠈⠀⠀⠂⠈⢍⠺⣌⠑⠠⠀⠀⠀⠀⠀⠀⠀⠀⠡⠈⠔⠂⠄⠊",
-      " ⠒⡀⠆⠡⠐⣉⠰⠠⠀⠀⠒⡠⠑⡄⠃⠌⠀⠀⠀⠤⣀⡤⣐⣀⠂⠘⢀⠂⡄⠃⠀⢀⠃⠤⠉⠄⠀⠀⠀⠀⠀⡀⢂⠡⠌⠡⢈⡐⠉⡄",
-      " ⠆⠡⠌⢂⠡⠄⢂⠡⠃⠀⢁⠢⢑⠠⢉⠂⠠⡄⠀⠀⠀⠀⠁⠙⠚⠣⢄⠀⠀⠌⠀⠀⡈⠄⡑⠀⠀⠀⠄⢂⠡⠐⢂⡐⠈⠤⠁⡄⠡⢀",
-      " ⡐⠡⡈⢂⠔⠨⠄⢂⠀⠀⡀⠆⣁⠢⠁⡌⢰⢩⠖⡔⢶⡠⠀⠀⠀⠀⠀⠀⠀⠀⡀⠐⢀⠐⠀⠀⠠⢉⠰⠈⠄⠃⠤⢀⡉⠄⡡⠠⢁⠂",
-      " ⡠⠡⠐⠡⣈⠂⢅⠂⠀⠀⡐⠄⡀⠂⢅⢢⡁⢎⡘⠌⠠⠙⠹⠒⠧⢀⠠⠘⠀⠠⠀⡁⠠⢈⠂⠌⡐⢁⠂⡉⠤⢉⠐⡠⠐⢂⠁⢂⠡⠈",
-      " ⢁⢂⠉⠔⠠⡈⠄⢊⢀⠰⡐⠠⢀⠉⠄⢂⠹⣄⠲⣈⢄⡐⠀⠁⡐⠠⢂⠡⠈⢀⠐⠀⡰⠀⠌⡐⠠⠂⢄⢁⠂⡂⠡⠄⡑⢈⠰⠈⠄⡡",
-      " ⠂⡄⠊⠌⡐⠠⠑⣈⠐⢢⠡⠘⠠⢈⠐⠠⠁⠌⡱⠌⠦⡑⢎⡰⢀⠡⠂⡐⠀⠀⠀⢠⠁⠌⡐⠠⠡⠌⡀⠆⢂⡁⠒⣈⠐⠌⡠⠑⡈⠄",
-      " ⡡⠄⠉⠒⠈⠁⠈⠀⠈⢆⠡⢃⠁⠂⠌⡐⠀⢀⠀⠌⠐⠁⠎⠐⠁⠂⠁⠀⠀⠰⢈⠄⠌⡐⠠⠑⠠⢂⠡⠈⡄⠰⠁⡄⠌⢂⠄⡁⠆⡈",
-      " ⠀⠀⠀⠀⠀⠀⠀⠀⢌⠢⡑⠌⡌⠌⡐⠀⠄⠂⠀⠀⡀⠀⠀⠀⠀⠀⠀⠄⡈⠐⠂⠌⡐⠠⠑⡈⢁⠂⠄⠃⠄⡡⠒⠠⠘⣀⠢⠐⢂⠡",
-      " ⠀⠀⠀⠀⠀⠀⢰⢁⠢⢡⠘⡐⢌⠢⡁⠌⠀⠀⠀⠄⠀⠀⠀⠈⢀⠠⢁⢂⠐⠀⠈⠀⠐⠡⡁⠌⠠⠌⡀⠃⠌⠠⢁⠊⠡⢀⠂⠱⢀⠂",
-    ];
+    function startAlert() {
+      if (introDone) return;
+      $('boot').classList.remove('on');
+      $('alert').classList.add('on');
+      $('alert-ip').textContent =
+        [0, 0, 0, 0].map(() => Math.floor(Math.random() * 255)).join('.');
 
+      let pct = 0;
+      const iv = setInterval(() => {
+        if (introDone) { clearInterval(iv); return; }
+        pct = Math.min(100, pct + 7 + Math.floor(Math.random() * 11));
+        const filled = Math.round(pct / 10);
+        $('trace').textContent =
+          '[' + '█'.repeat(filled) + '░'.repeat(10 - filled) + '] ' + pct + '%';
+        if (pct >= 100) {
+          clearInterval(iv);
+          $('joke').classList.add('on');
+          setTimeout(launch, 1150);
+        }
+      }, 150);
+    }
+
+    function launch() {
+      if (introDone) return;
+      introDone = true;
+      cancelAnimationFrame(matrixRAF);
+      $('alert').classList.remove('on');
+      $('boot').classList.remove('on');
+      canvas.style.display = 'none';
+      $('skip').style.display = 'none';
+      $('term').classList.add('on');
+
+      switchTab('home', true);
+      fitArt();
+      drawPortrait();
+      typeTagline();
+      startClock();
+    }
+
+    // Any key or tap during the intro jumps straight in. The TUI can't skip
+    // it, but a website gets revisited, and nobody should sit through the
+    // same 12 seconds twice.
+    function skipIntro() { if (!introDone) launch(); }
+    window.addEventListener('keydown', skipIntro);
+    window.addEventListener('pointerdown', skipIntro);
+
+    /* ═══ HOME ANIMATIONS ═══ */
+
+    let portraitTimer = null;
     function drawPortrait() {
-      const pre = document.getElementById('portrait-pre');
+      const pre = $('portrait');
       pre.textContent = '';
-      pre.classList.add('show');
-      let row = 0;
-      function nextRow() {
-        if (row >= portraitLines.length) return;
-        pre.textContent += (row === 0 ? '' : '\n') + portraitLines[row];
-        row++;
-        setTimeout(nextRow, 30);
-      }
-      nextRow();
+      $('banner').textContent = BANNER.join('\n');
+      let r = 0;
+      clearTimeout(portraitTimer);
+      (function row() {
+        if (r >= PORTRAIT.length) return;
+        pre.textContent += (r ? '\n' : '') + PORTRAIT[r];
+        r++;
+        portraitTimer = setTimeout(row, 26);
+      })();
     }
 
-    // ═══ PROJECTS DATA ═══
-    // FALLBACK ONLY. The live list is fetched from /api/content at load, so
-    // this page shows the same projects as the SSH TUI — including any the
-    // GitHub sync worker has added — without a rebuild.
-    //
-    // This array is what renders if the fetch fails or the file is opened
-    // directly from disk, so the page is never empty. It does not need to be
-    // kept perfectly in sync; content.yaml is the source of truth.
-    let PROJECTS = [
-      {
-        title: 'EmbedGen — Domain-Specific Code LLM', status: 'wip', label: 'WIP', hl: '',
-        desc: 'Built a 62M-parameter transformer from scratch trained on embedded-systems C/C++ codebases. Custom BPE tokeniser (32k vocab), MiniHash LSH deduplication, multi-head attention with RoPE + RMSNorm. Quantized to ONNX FP16 for edge deployment. EmbedGen outperforms CodeLLaMA-7B (80x larger) on EmbedEval — a domain-specific benchmark across 10 embedded categories (GPIO, UART, DMA, FreeRTOS, SPI, ADC, Timers, Interrupts). Ships as a VS Code extension with C/C++ autocomplete.',
-        tags: ['Python', 'PyTorch', 'ONNX', 'CUDA', 'Transformers', 'FastAPI'], github: 'github.com/trafalgar-2006/EmbedGen'
-      },
-      {
-        title: 'SAR2EO — Satellite Image Translation', status: 'wip', label: 'WIP', hl: '',
-        desc: 'Deep learning pipeline that translates Synthetic Aperture Radar (SAR) satellite imagery to Electro-Optical (EO) visible-light images using conditional GANs and diffusion-based domain adaptation. Trained on paired SAR/EO datasets, enabling all-weather all-time satellite reconnaissance from radar-only feeds. Built on top of ISRO LEOS research experience.',
-        tags: ['Python', 'PyTorch', 'GANs', 'OpenCV', 'NumPy'], github: 'github.com/trafalgar-2006/sar2eo'
-      },
-      {
-        title: 'ISRO LEOS — Sim-to-Real Vision', status: 'research', label: 'Research',
-        hl: '22 FPS on Jetson',
-        desc: 'Built a full synthetic-to-real perception pipeline for ISRO\'s Low Earth Orbit Satellite lab. Generated 6,000+ photo-realistic satellite images in BlenderProc with automated COCO/YOLO annotations. Implemented SOG2 rotations with spherical camera trajectories for 360° angular coverage. Reduced data generation time 70% by benchmarking path-scaling parameters. Deployed YOLOv7 on NVIDIA Jetson Xavier via TensorRT @ 22 FPS. Built GAN-based domain adaptation to close the sim-to-real gap.',
-        tags: ['BlenderProc', 'YOLOv7', 'TensorRT', 'Python', 'OpenCV'], github: ''
-      },
-      {
-        title: 'Autonomous Trading System', status: 'live', label: 'Live', hl: '',
-        desc: 'End-to-end AI swing-trading agent that generates signals across the entire US equity market. Runs a multi-factor ML model (momentum + sentiment + technicals), executes paper trades via Alpaca API with position sizing and stop-loss logic, and logs every decision to SQLite for post-hoc analysis. Runs 24/7 on Oracle Cloud Always Free — zero hosting cost.',
-        tags: ['Python', 'SQLite', 'Alpaca API', 'Oracle Cloud', 'Pandas'], github: 'github.com/trafalgar-2006/autonomous-trading-agent'
-      },
-      {
-        title: 'Zycus — Procurement Intelligence Agent', status: 'wip', label: 'WIP', hl: '',
-        desc: 'AI-powered procurement analytics and automation agent. Processes supplier data, contract terms, and spend analytics to surface actionable insights and automate repetitive procurement workflows. Built in Python with an agentic pipeline for document parsing, classification, and reporting.',
-        tags: ['Python', 'AI', 'Pandas', 'FastAPI'], github: 'github.com/trafalgar-2006/zycus'
-      },
-      {
-        title: 'Webcraft Studios — Digital Agency', status: 'live', label: 'Live', hl: '',
-        desc: 'Founded and built a boutique digital agency serving clients across India and the UAE. Engineered full-stack platforms using React, Node.js, MongoDB and Stripe. Scaled to multiple international SaaS clients within the first year. Built a customer-first delivery pipeline (Discovery → Design → Dev → Launch → Support) cutting delivery cycle time by 30%+. Revenue-generating since 2025.',
-        tags: ['React', 'Node.js', 'MongoDB', 'AWS', 'Python', 'Stripe'], github: ''
-      },
-      {
-        title: 'Bird Sound Species Detector', status: 'research', label: 'Research',
-        hl: '90%+ accuracy',
-        desc: 'CNN classifier that identifies bird species from raw field audio. Converts MP3 recordings to mel-spectrograms, trains a ResNet-18 on a curated multi-species dataset, outputs species predictions with confidence scores. Built as a field tool for ornithologists doing surveys without internet access.',
-        tags: ['Python', 'TensorFlow', 'ResNet', 'Librosa', 'CNNs'], github: ''
-      },
-      {
-        title: 'BioAcoustic Frog Classifier', status: 'research', label: 'Research', hl: '',
-        desc: 'Audio ML pipeline for automated frog species identification across 803 species. Applies noise reduction, bandpass filtering, and MFCC feature extraction on environmental recordings, then matches peak frequencies against a reference database. Designed for biodiversity researchers processing hundreds of hours of field audio.',
-        tags: ['Python', 'Librosa', 'Scikit-learn', 'NumPy'], github: 'github.com/trafalgar-2006/BioAcoustic-Frog-Classifier'
-      },
-      {
-        title: 'SSH Portfolio (this one)', status: 'live', label: 'Live', hl: '',
-        desc: 'An interactive TUI portfolio served over raw SSH — no browser, no JavaScript. Built in Go with Bubbletea and Wish. Matrix rain intro, fake boot sequence, 5 colour themes, split-pane projects view, live visitor counter, jittering ping display, decrypt-reveal animations, vim motions, and smooth lerp transitions. You\'re looking at it right now.',
-        tags: ['Go', 'Bubbletea', 'Docker', 'Wish', 'SSH'], github: 'github.com/trafalgar-2006/portfolio'
-      },
-    ];
+    let tagTimer = null;
+    function typeTagline() {
+      const el = $('tagline');
+      let i = 0;
+      clearTimeout(tagTimer);
+      (function step() {
+        if (i > TAGLINE.length) {
+          el.innerHTML = esc(TAGLINE) + '<span class="caret">▌</span>';
+          return;
+        }
+        el.innerHTML = esc(TAGLINE.slice(0, i)) + '<span class="caret">▌</span>';
+        i++;
+        tagTimer = setTimeout(step, 26);
+      })();
+    }
+
+    function startClock() {
+      const t0 = Date.now();
+      const tick = () => {
+        const s = Math.floor((Date.now() - t0) / 1000);
+        $('st-clock').textContent = 'connected '
+          + String(Math.floor(s / 60)).padStart(2, '0') + ':'
+          + String(s % 60).padStart(2, '0');
+      };
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       RENDERING — every pane is built from DATA, which comes from
+       /api/content. Nothing here is hand-maintained: editing content.yaml
+       updates the TUI and this page together.
+       ═══════════════════════════════════════════════════════════════════ */
+
+    function renderHome() {
+      const d = DATA;
+      const bio = [];
+      if (d.headline) bio.push('<p><b>' + esc(d.headline) + '</b></p>');
+      (d.drive || []).forEach(l => bio.push('<p>' + esc(l) + '</p>'));
+      if (!bio.length) bio.push('<p>' + esc(d.tagline || '') + '</p>');
+      $('bio').innerHTML = bio.join('');
+
+      const parts = [];
+      if (d.location) parts.push('<span class="k">location</span> ' + esc(d.location));
+      parts.push('<span class="k">build</span> ' + esc(d.commit || 'unknown'));
+      parts.push('<span class="k">projects</span> ' + (d.projects || []).length);
+      $('meta').innerHTML = parts.join('  ·  ');
+    }
+
+    let projSel = 0;
 
     function renderProjects() {
-      const list = document.getElementById('projects-list');
-      list.innerHTML = '';
-      PROJECTS.forEach((p, i) => {
-        const div = document.createElement('div');
-        div.className = 'proj-item';
-        div.innerHTML = `
-      <div class="proj-num">${String(i + 1).padStart(2, '0')}.</div>
-      <div class="proj-body">
-        <div class="proj-hdr">
-          <span class="proj-name">${p.title}</span>
-          <span class="badge ${p.status}">[${p.label}]</span>
-          ${p.hl ? `<span class="proj-hl">${p.hl.startsWith('⚡') ? p.hl : '⚡ ' + p.hl}</span>` : ''}
-        </div>
-        <div class="proj-desc">${p.desc}</div>
-        <div class="proj-tags">${p.tags.map(t => `<span class="tag">[${t}]</span>`).join('')}</div>
-        ${p.github ? `<a href="https://${p.github}" target="_blank" rel="noopener noreferrer" class="proj-gh">→ ${p.github}</a>` : ''}
-      </div>`;
-        list.appendChild(div);
-      });
-    }
+      const list = $('proj-list');
+      const ps = DATA.projects || [];
+      $('proj-count').textContent = ps.length ? ps.length + ' total' : '';
 
-    // ═══ LIVE CONTENT ═══
-    // Pull the real project list from the server. Everything here is
-    // best-effort: any failure leaves the fallback array on screen.
-    async function loadLiveContent() {
-      try {
-        const res = await fetch('/api/content', { cache: 'no-cache' });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data || !Array.isArray(data.projects) || data.projects.length === 0) return;
-
-        // Trust the shape, but don't let a malformed entry blank the page.
-        PROJECTS = data.projects.map(p => ({
-          title: String(p.title || 'Untitled'),
-          status: ['live', 'wip', 'research'].includes(p.status) ? p.status : 'wip',
-          label: String(p.label || ''),
-          hl: String(p.hl || ''),
-          desc: String(p.desc || ''),
-          tags: Array.isArray(p.tags) ? p.tags.map(String) : [],
-          github: String(p.github || ''),
-          auto: !!p.auto,
-        }));
-        renderProjects();
-        if (activeTab === 'projects') animProjects();
-      } catch (_) {
-        // Offline, opened as a file:// URL, or the API is down —
-        // the fallback list is already rendered.
+      if (!ps.length) {
+        list.innerHTML = '<div class="pal-empty">No projects loaded.</div>';
+        return;
       }
-    }
+      projSel = Math.max(0, Math.min(projSel, ps.length - 1));
 
-    // ═══ TABS ═══
-    let activeTab = 'projects';
-    function switchTab(tab) {
-      activeTab = tab;
-      document.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.tab === tab);
-      });
-      document.querySelectorAll('.tab-pane').forEach(p => {
-        p.style.display = p.id === `tab-${tab}` ? 'block' : 'none';
-      });
-      const ca = document.getElementById('content-area');
-      ca.classList.add('visible');
-      setTimeout(() => ca.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+      list.innerHTML = ps.map(function (p, i) {
+        const status = ['live', 'wip', 'research'].indexOf(p.status) >= 0 ? p.status : 'wip';
+        const tags = (p.tags || []).map(t => '<span class="tag">' + esc(t) + '</span>').join('');
+        return '<div class="proj' + (i === projSel ? ' sel' : '') + '" data-i="' + i + '">'
+          + '<div class="proj-top">'
+          + '<span class="proj-name">' + esc(p.title) + '</span>'
+          + '<span class="badge ' + status + '">' + esc(p.label || status) + '</span>'
+          + (p.auto ? '<span class="auto-tag">· synced from github</span>' : '')
+          + '</div>'
+          + (p.desc ? '<div class="proj-desc">' + esc(p.desc) + '</div>' : '')
+          + (p.hl ? '<div class="proj-hl">◆ ' + esc(p.hl) + '</div>' : '')
+          + (tags ? '<div class="tags">' + tags + '</div>' : '')
+          + (p.github
+            ? '<a class="proj-link" href="' + esc(href(p.github)) + '" target="_blank" rel="noopener">→ '
+            + esc(p.github) + '</a>'
+            : '')
+          + '</div>';
+      }).join('');
 
-      if (tab === 'projects') animProjects();
-      if (tab === 'about') animAbout();
-      if (tab === 'contacts') animContacts();
-    }
-
-    function animProjects() {
-      document.querySelectorAll('.proj-item').forEach((el, i) => {
-        el.classList.remove('in');
-        el.querySelectorAll('.tag').forEach(t => t.classList.remove('in'));
-        setTimeout(() => {
-          el.classList.add('in');
-          el.querySelectorAll('.tag').forEach((t, j) => setTimeout(() => t.classList.add('in'), j * 55 + 200));
-        }, i * 70);
-      });
-    }
-    function animAbout() {
-      document.querySelectorAll('.exp-entry').forEach((el, i) => {
-        el.classList.remove('in');
-        setTimeout(() => el.classList.add('in'), i * 110);
-      });
-    }
-    function animContacts() {
-      document.querySelectorAll('.contact-item').forEach((el, i) => {
-        el.classList.remove('in');
-        setTimeout(() => el.classList.add('in'), i * 90);
-      });
-      setTimeout(() => {
-        const box = document.querySelector('.ssh-box');
-        if (box) {
-          box.style.borderColor = 'var(--cyan)';
-          setTimeout(() => { box.style.borderColor = ''; }, 700);
-        }
-      }, 500);
-    }
-
-    // ═══ SSH COPY ═══
-    function copySSH(el) {
-      navigator.clipboard.writeText('ssh ssh.mohith.is-a.dev -p 41074').then(() => {
-        const h = el.querySelector('.ssh-copy-hint');
-        h.textContent = '[ copied! ]'; h.style.color = 'var(--cyan)';
-        el.style.animation = 'sshFlash 0.5s ease';
-        setTimeout(() => { h.textContent = '[ click to copy ]'; h.style.color = ''; el.style.animation = ''; }, 2000);
+      Array.prototype.forEach.call(list.querySelectorAll('.proj'), function (el) {
+        el.addEventListener('click', function (e) {
+          if (e.target.closest('a')) return; // let the repo link win
+          projSel = parseInt(el.dataset.i, 10);
+          renderProjects();
+        });
       });
     }
 
-    // ═══ TIME GREETING ═══
-    function setGreeting() {
-      const el = document.getElementById('time-greeting');
-      if (!el) return;
-      const h = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })).getHours();
-      const msgs = [
-        [5, 12, 'Good morning. You caught me early.'],
-        [12, 17, 'Good afternoon. In the middle of something, but hey.'],
-        [17, 21, 'Good evening. Wrapping things up.'],
-        [21, 24, 'Late night? Same. Welcome.'],
-        [0, 5, 'You\'re up late. Or very early. Either way — hi.'],
+    function selectProject(i) {
+      const n = (DATA.projects || []).length;
+      if (!n) return;
+      projSel = Math.max(0, Math.min(n - 1, i));
+      renderProjects();
+      const el = $('proj-list').querySelector('.proj.sel');
+      if (el) el.scrollIntoView({ block: 'nearest' });
+    }
+
+    function entryHTML(e, role, org, period, note) {
+      return '<div class="entry">'
+        + '<div class="entry-role">' + esc(role) + '</div>'
+        + '<div class="entry-org">' + esc(org) + '</div>'
+        + '<div class="entry-period">' + esc(period) + (note ? ' · ' + esc(note) : '') + '</div>'
+        + ((e.bullets && e.bullets.length)
+          ? '<ul>' + e.bullets.map(b => '<li>' + esc(b) + '</li>').join('') + '</ul>'
+          : '')
+        + '</div>';
+    }
+
+    function renderAbout() {
+      const d = DATA;
+      const out = [];
+
+      if (d.experience && d.experience.length) {
+        out.push('<div class="sub-ttl">Work</div>');
+        d.experience.forEach(r => out.push(entryHTML(
+          r, r.title, r.org + (r.location ? ' · ' + r.location : ''), r.period, '')));
+      }
+
+      if (d.education && d.education.length) {
+        out.push('<div class="sub-ttl">Education</div>');
+        d.education.forEach(e => out.push(entryHTML(e, e.degree, e.school, e.period, e.note)));
+      }
+
+      if (d.skills && d.skills.length) {
+        out.push('<div class="sub-ttl">Skills</div>');
+        d.skills.forEach(s => out.push('<div class="skill">'
+          + '<span class="skill-name">' + esc(s.name) + '</span>'
+          + '<span class="bar"><i data-pct="' + (s.pct | 0) + '"></i></span>'
+          + '<span class="skill-pct">' + (s.pct | 0) + '</span>'
+          + '</div>'));
+      }
+
+      $('about-body').innerHTML = out.join('')
+        || '<div class="pal-empty">Nothing loaded yet.</div>';
+
+      // Fill the bars after paint, so the width transition actually runs.
+      requestAnimationFrame(function () {
+        Array.prototype.forEach.call($('about-body').querySelectorAll('.bar > i'),
+          function (el, i) {
+            setTimeout(function () { el.style.width = el.dataset.pct + '%'; }, i * 45);
+          });
+      });
+    }
+
+    function renderResume() {
+      const d = DATA;
+      const out = [];
+
+      if (d.skillGroups && d.skillGroups.length) {
+        out.push('<div class="sub-ttl">Technical skills</div>');
+        d.skillGroups.forEach(g => out.push('<div class="group">'
+          + '<span class="cat">' + esc(g.category) + ':</span> '
+          + '<span class="items">' + esc(g.items) + '</span></div>'));
+      }
+
+      if (d.experience && d.experience.length) {
+        out.push('<div class="sub-ttl">Experience</div>');
+        d.experience.forEach(r => out.push(entryHTML(r, r.title, r.org, r.period, '')));
+      }
+
+      if (d.education && d.education.length) {
+        out.push('<div class="sub-ttl">Education</div>');
+        d.education.forEach(e => out.push(entryHTML(
+          { bullets: [] }, e.degree, e.school, e.period, e.note)));
+      }
+
+      if (d.resumeUrl) {
+        out.push('<a class="resume-cta" href="' + esc(d.resumeUrl)
+          + '" target="_blank" rel="noopener">Download PDF ↓</a>');
+      }
+
+      $('resume-body').innerHTML = out.join('')
+        || '<div class="pal-empty">Nothing loaded yet.</div>';
+    }
+
+    function renderContacts() {
+      $('contact-list').innerHTML = (DATA.contacts || []).map(c =>
+        '<a class="contact" href="' + esc(href(c.value)) + '" target="_blank" rel="noopener">'
+        + '<span class="ico">' + esc(c.icon) + '</span>'
+        + '<span class="lbl">' + esc(c.label) + '</span>'
+        + '<span class="val">' + esc(c.value) + '</span>'
+        + '</a>').join('');
+    }
+
+    function renderNow() {
+      const n = DATA.now || {};
+      const block = (title, items) => (items && items.length)
+        ? '<div class="sub-ttl">' + title + '</div><ul class="now-list">'
+        + items.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul>'
+        : '';
+      $('now-body').innerHTML =
+        block('Building', n.building) + block('Learning', n.learning)
+        + block('Reading', n.reading) + block('Status', n.status)
+        || '<div class="pal-empty">Nothing loaded yet.</div>';
+    }
+
+    function renderHelp() {
+      const rows = [
+        ['← → / h l', 'Move along the tab bar'],
+        ['↑ ↓ / j k', 'Scroll, or move the project cursor'],
+        ['5j / 12k', 'Count prefix — repeat the motion'],
+        ['g g / G', 'Jump to top / bottom'],
+        ['Space / PgDn', 'Page down'],
+        ['Ctrl+D / Ctrl+U', 'Half page down / up'],
+        ['/ or Ctrl+K', 'Command palette'],
+        ['Enter', 'Open the selected project on GitHub'],
+        ['t', 'Cycle colour theme'],
+        ['?', 'This screen'],
+        ['Esc / q', 'Back home']
       ];
-      const m = msgs.find(([a, b]) => h >= a && h < b) || msgs[0];
-      el.textContent = m[2];
+      $('help-body').innerHTML =
+        '<div class="sub-ttl">Keyboard</div>'
+        + rows.map(r => '<div class="skill" style="grid-template-columns:17ch 1fr">'
+          + '<span class="skill-name" style="color:var(--accent)">' + esc(r[0]) + '</span>'
+          + '<span class="skill-name">' + esc(r[1]) + '</span></div>').join('')
+        + '<div class="sub-ttl">The same thing over SSH</div>'
+        + '<div class="group"><span class="items">Every screen here also runs in your terminal — '
+        + 'plus a live guestbook, Snake and Tetris, an eight-effect playground and a scrubber '
+        + 'through this repo\'s own commit history, none of which the web version carries.'
+        + '</span></div>'
+        + '<div class="ssh-box" id="ssh-box-help"><div class="lead">click to copy</div>'
+        + '<code>' + SSH_CMD + '</code></div>';
+      $('ssh-box-help').addEventListener('click', copySSH);
     }
 
-    // ═══ GITHUB COMMIT ═══
-    function fetchCommit() {
-      fetch('https://api.github.com/repos/trafalgar-2006/portfolio/commits?per_page=1')
-        .then(r => r.json())
-        .then(data => {
-          if (!data || !data[0]) return;
-          const msg = data[0].commit.message.split('\n')[0];
-          const date = new Date(data[0].commit.author.date);
-          const diff = Math.round((Date.now() - date) / 36e5);
-          const t = diff < 1 ? 'just now' : diff < 24 ? `${diff}h ago` : `${Math.floor(diff / 24)}d ago`;
-          document.getElementById('last-pushed').innerHTML =
-            `last pushed: <span class="lp-msg">"${msg}"</span> · ${t}`;
-        }).catch(() => {
-          document.getElementById('last-pushed').innerHTML =
-            `last pushed: <span class="lp-msg">"trigger bot re-review"</span> · 23h ago`;
+    function renderAll() {
+      renderHome(); renderProjects(); renderAbout();
+      renderContacts(); renderResume(); renderNow(); renderHelp();
+    }
+
+    /* ═══ LIVE CONTENT ═══ */
+
+    function loadContent() {
+      return fetch('/api/content', { cache: 'no-cache' })
+        .then(res => res.ok ? res.json() : null)
+        .then(function (d) {
+          if (!d || typeof d !== 'object') return;
+
+          // Merge rather than replace, so a payload missing a field falls
+          // back instead of blanking a whole pane.
+          DATA = Object.assign({}, DATA, d);
+          if (Array.isArray(d.projects)) {
+            DATA.projects = d.projects.map(p => ({
+              title: String(p.title || 'Untitled'),
+              status: ['live', 'wip', 'research'].indexOf(p.status) >= 0 ? p.status : 'wip',
+              label: String(p.label || ''),
+              hl: String(p.hl || ''),
+              desc: String(p.desc || ''),
+              tags: Array.isArray(p.tags) ? p.tags.map(String) : [],
+              github: String(p.github || ''),
+              auto: !!p.auto
+            }));
+          }
+          renderAll();
+        })
+        .catch(function () {
+          // Offline, file://, or the API is down — the fallback already rendered.
         });
     }
 
-    // ═══ KEYBOARD NAV ═══
-    const TABS = ['projects', 'about', 'contacts'];
-    document.addEventListener('keydown', e => {
-      if (!document.getElementById('portfolio').classList.contains('visible')) return;
-      if (e.key === 'ArrowRight' || e.key === 'l') {
-        const i = TABS.indexOf(activeTab);
-        switchTab(TABS[(i + 1) % TABS.length]);
+    /* ═══ TABS ═══ */
+
+    const TABS = ['home', 'projects', 'about', 'contacts', 'resume', 'now'];
+    let tab = 'home';
+
+    function switchTab(name, silent) {
+      if (TABS.indexOf(name) === -1 && name !== 'help') return;
+      tab = name;
+      Array.prototype.forEach.call(document.querySelectorAll('.pane'),
+        p => p.classList.toggle('on', p.id === 'pane-' + name));
+      Array.prototype.forEach.call(document.querySelectorAll('.tab'),
+        b => b.classList.toggle('on', b.dataset.tab === name));
+      const pane = $('pane-' + name);
+      if (pane) pane.scrollTop = 0;
+      if (name === 'home') { fitArt(); if (!silent) typeTagline(); }
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'),
+      b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+    function moveTab(dir) {
+      // help isn't in the bar; stepping off it lands back on home.
+      const i = TABS.indexOf(tab);
+      const from = i === -1 ? 0 : i;
+      switchTab(TABS[(from + dir + TABS.length) % TABS.length]);
+    }
+
+    const activePane = () => $('pane-' + tab) || $('pane-home');
+
+    /* ═══ COMMAND PALETTE ═══ */
+
+    let palOpen = false, palSel = 0, palItems = [];
+
+    function palEntries() {
+      const base = [
+        { label: 'Home', kind: 'screen', go: () => switchTab('home') },
+        { label: 'Projects', kind: 'screen', go: () => switchTab('projects') },
+        { label: 'About', kind: 'screen', go: () => switchTab('about') },
+        { label: 'Contacts', kind: 'screen', go: () => switchTab('contacts') },
+        { label: 'Resume', kind: 'screen', go: () => switchTab('resume') },
+        { label: '/now', kind: 'screen', go: () => switchTab('now') },
+        { label: 'Keys', kind: 'screen', go: () => switchTab('help') },
+        { label: 'Cycle theme', kind: 'action', go: cycleTheme },
+        { label: 'Copy SSH command', kind: 'action', go: copySSH },
+        {
+          label: 'Download resume', kind: 'action',
+          go: () => window.open(DATA.resumeUrl, '_blank', 'noopener')
+        }
+      ];
+      (DATA.projects || []).forEach(function (p, i) {
+        base.push({
+          label: p.title, kind: 'project',
+          go: function () { switchTab('projects'); selectProject(i); }
+        });
+      });
+      return base;
+    }
+
+    function openPalette() {
+      palOpen = true;
+      palSel = 0;
+      $('palette').classList.add('on');
+      $('pal-q').value = '';
+      filterPalette();
+      $('pal-q').focus();
+    }
+
+    function closePalette() {
+      palOpen = false;
+      $('palette').classList.remove('on');
+      $('pal-q').blur();
+    }
+
+    function filterPalette() {
+      const q = $('pal-q').value.trim().toLowerCase();
+      palItems = palEntries().filter(e => !q || e.label.toLowerCase().indexOf(q) >= 0);
+      if (palSel >= palItems.length) palSel = Math.max(0, palItems.length - 1);
+
+      const list = $('pal-list');
+      if (!palItems.length) {
+        list.innerHTML = '<div class="pal-empty">no match</div>';
+        return;
       }
-      if (e.key === 'ArrowLeft' || e.key === 'h') {
-        const i = TABS.indexOf(activeTab);
-        switchTab(TABS[(i - 1 + TABS.length) % TABS.length]);
+      list.innerHTML = palItems.map((e, i) =>
+        '<div class="pal-item' + (i === palSel ? ' sel' : '') + '" data-i="' + i + '">'
+        + '<span>' + esc(e.label) + '</span>'
+        + '<span class="kind">' + esc(e.kind) + '</span></div>').join('');
+
+      Array.prototype.forEach.call(list.querySelectorAll('.pal-item'),
+        el => el.addEventListener('click', () => runPalette(parseInt(el.dataset.i, 10))));
+
+      const sel = list.querySelector('.pal-item.sel');
+      if (sel) sel.scrollIntoView({ block: 'nearest' });
+    }
+
+    function runPalette(i) {
+      const e = palItems[i];
+      closePalette();
+      if (e) e.go();
+    }
+
+    $('pal-q').addEventListener('input', function () { palSel = 0; filterPalette(); });
+    $('palette').addEventListener('click', function (e) {
+      if (e.target.id === 'palette') closePalette();
+    });
+
+    /* ═══ ACTIONS ═══ */
+
+    function copySSH() {
+      const done = () => toast('copied: ' + SSH_CMD);
+
+      function legacy() {
+        const ta = document.createElement('textarea');
+        ta.value = SSH_CMD;
+        ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); }
+        catch (_) { toast(SSH_CMD); }
+        ta.remove();
       }
-      if (e.key === 'q' || e.key === 'Escape') {
-        document.getElementById('content-area').classList.remove('visible');
+
+      // clipboard.writeText needs a secure context; fall back where it isn't.
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(SSH_CMD).then(done, legacy);
+      } else legacy();
+    }
+
+    function setGreeting() {
+      const h = new Date().getHours();
+      $('greeting').textContent = h < 5 ? 'up late'
+        : h < 12 ? 'good morning'
+          : h < 17 ? 'good afternoon'
+            : h < 22 ? 'good evening' : 'good night';
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       KEYBOARD — the TUI's model, as closely as a browser allows.
+       ═══════════════════════════════════════════════════════════════════ */
+
+    let numBuf = '';
+    let gPending = false;
+
+    document.addEventListener('keydown', function (e) {
+      // The palette owns the keyboard while it's open.
+      if (palOpen) {
+        if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+        else if (e.key === 'ArrowDown' || (e.ctrlKey && e.key === 'n')) {
+          e.preventDefault();
+          palSel = Math.min(palSel + 1, palItems.length - 1);
+          filterPalette();
+        } else if (e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'p')) {
+          e.preventDefault();
+          palSel = Math.max(palSel - 1, 0);
+          filterPalette();
+        } else if (e.key === 'Enter') { e.preventDefault(); runPalette(palSel); }
+        return;
+      }
+
+      if (!introDone) return;
+      if (e.altKey || e.metaKey) return; // leave browser shortcuts alone
+
+      const k = e.key;
+      const pane = activePane();
+      const LINE = 42;
+
+      if (k === '/' || (e.ctrlKey && (k === 'k' || k === 'K'))) {
+        e.preventDefault(); openPalette(); return;
+      }
+
+      // Ctrl is only ours for the half-page pair.
+      if (e.ctrlKey) {
+        if (k === 'd' || k === 'D') {
+          e.preventDefault();
+          pane.scrollBy({ top: pane.clientHeight * .5, behavior: 'smooth' });
+        } else if (k === 'u' || k === 'U') {
+          e.preventDefault();
+          pane.scrollBy({ top: -pane.clientHeight * .5, behavior: 'smooth' });
+        }
+        return;
+      }
+
+      const count = function () {
+        const n = Math.max(1, parseInt(numBuf, 10) || 1);
+        numBuf = '';
+        return n;
+      };
+
+      switch (k) {
+        case 'ArrowRight': case 'l': e.preventDefault(); moveTab(1); break;
+        case 'ArrowLeft': case 'h': e.preventDefault(); moveTab(-1); break;
+
+        case 'ArrowDown': case 'j': {
+          e.preventDefault();
+          const n = count();
+          if (tab === 'projects') selectProject(projSel + n);
+          else pane.scrollBy({ top: LINE * n, behavior: 'smooth' });
+          break;
+        }
+        case 'ArrowUp': case 'k': {
+          e.preventDefault();
+          const n = count();
+          if (tab === 'projects') selectProject(projSel - n);
+          else pane.scrollBy({ top: -LINE * n, behavior: 'smooth' });
+          break;
+        }
+
+        case 'PageDown': case ' ':
+          e.preventDefault();
+          pane.scrollBy({ top: pane.clientHeight * .85, behavior: 'smooth' });
+          break;
+        case 'PageUp':
+          e.preventDefault();
+          pane.scrollBy({ top: -pane.clientHeight * .85, behavior: 'smooth' });
+          break;
+        case 'Home':
+          e.preventDefault(); pane.scrollTo({ top: 0, behavior: 'smooth' }); break;
+        case 'End':
+          e.preventDefault(); pane.scrollTo({ top: pane.scrollHeight, behavior: 'smooth' }); break;
+
+        case 'g':
+          e.preventDefault();
+          if (gPending) {
+            gPending = false;
+            if (tab === 'projects') selectProject(0);
+            else pane.scrollTo({ top: 0, behavior: 'smooth' });
+          } else {
+            gPending = true;
+            setTimeout(function () { gPending = false; }, 600);
+          }
+          break;
+        case 'G':
+          e.preventDefault();
+          if (tab === 'projects') selectProject((DATA.projects || []).length - 1);
+          else pane.scrollTo({ top: pane.scrollHeight, behavior: 'smooth' });
+          break;
+
+        case 't': e.preventDefault(); cycleTheme(); break;
+        case '?': e.preventDefault(); switchTab('help'); break;
+        case 'Escape': case 'q': e.preventDefault(); switchTab('home'); break;
+
+        case 'Enter':
+          if (tab === 'projects') {
+            const p = (DATA.projects || [])[projSel];
+            if (p && p.github) {
+              e.preventDefault();
+              window.open(href(p.github), '_blank', 'noopener');
+            }
+          }
+          break;
+
+        default:
+          if (/^[0-9]$/.test(k)) numBuf += k;
+          else numBuf = '';
       }
     });
+
+    /* ═══ BOOT IT ═══ */
+
+    window.addEventListener('resize', function () {
+      if (!introDone) sizeCanvas();
+      fitArt();
+    });
+    window.addEventListener('orientationchange', function () { setTimeout(fitArt, 250); });
+
+    $('ssh-box-contacts').addEventListener('click', copySSH);
+
+    // Restore the visitor's last theme. Private windows and blocked site
+    // data both throw here, so the access is guarded.
+    try {
+      const saved = parseInt(localStorage.getItem('theme'), 10);
+      if (saved >= 0 && saved < THEMES.length) themeIdx = saved;
+    } catch (_) { }
+    applyTheme(themeIdx);
+
+    sizeCanvas();
+    setGreeting();
+    renderAll();
+    loadContent();
+    drawMatrix();
   </script>
 </body>
 
