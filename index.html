@@ -1,422 +1,1534 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dracula">
+<html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Mohith Akshay Duggirala — ML engineer and builder. A 62M-parameter code LLM built from scratch, computer vision at ISRO, an autonomous trading agent. Also available over SSH.">
-<meta name="color-scheme" content="dark">
-<title>Mohith Akshay Duggirala</title>
-<style>
-    /* ═══════════════════════════════════════════════════════════════
-       The same five palettes the SSH TUI ships (views/theme.go).
-       This page is the terminal, rendered as a document — same
-       portrait, same flat layout, same two rules, same monospace.
-       ═══════════════════════════════════════════════════════════════ */
-    :root[data-theme="dracula"] {
-      --primary:#8BE9FD; --secondary:#FF79C6; --accent:#F1FA8C;
-      --success:#50FA7B; --warning:#FFB86C; --purple:#BD93F9;
-      --text:#F8F8F2; --dim-mid:#6272A4; --dim:#44475A;
-      --very-dim:#565B7A; --rule:#44475A; --ground:#21222C;
-    }
-    :root[data-theme="matrix"] {
-      --primary:#00FF41; --secondary:#00DD33; --accent:#AAFFAA;
-      --success:#00FF41; --warning:#99FF33; --purple:#00BB22;
-      --text:#CCFFCC; --dim-mid:#008822; --dim:#004411;
-      --very-dim:#00702E; --rule:#004411; --ground:#000C00;
-    }
-    :root[data-theme="amber"] {
-      --primary:#FFAA00; --secondary:#FF7700; --accent:#FFE066;
-      --success:#CCFF00; --warning:#FF5500; --purple:#FF9944;
-      --text:#FFD080; --dim-mid:#AA6600; --dim:#664400;
-      --very-dim:#8A6A20; --rule:#664400; --ground:#0A0600;
-    }
-    :root[data-theme="nord"] {
-      --primary:#88C0D0; --secondary:#B48EAD; --accent:#EBCB8B;
-      --success:#A3BE8C; --warning:#D08770; --purple:#81A1C1;
-      --text:#ECEFF4; --dim-mid:#7A8899; --dim:#4C566A;
-      --very-dim:#6E7A8F; --rule:#4C566A; --ground:#242933;
-    }
-    :root[data-theme="cyberpunk"] {
-      --primary:#FF007F; --secondary:#00FFFF; --accent:#FFE600;
-      --success:#00FF88; --warning:#FF6600; --purple:#CC00FF;
-      --text:#FFFFFF; --dim-mid:#AA44AA; --dim:#550055;
-      --very-dim:#8A4477; --rule:#550055; --ground:#0A000A;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Mohith Akshay Duggirala — ML engineer, full-stack developer & founder of Webcraft Studios. Built a 62M-parameter domain-specific LLM from scratch, deployed CV systems at ISRO, and ships production software.">
+  <title>mohith.is-a.dev</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
     }
 
     :root {
-      --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
-      --cell: clamp(11px, 1.05vw, 14px);
+      --cyan: #00e5ff;
+      --cyan-dim: rgba(0, 229, 255, 0.5);
+      --cyan-ghost: rgba(0, 229, 255, 0.06);
+      --cyan-glow: rgba(0, 229, 255, 0.3);
+      --pink: #ff4fa3;
+      --amber: #ffb700;
+      --red: #ff3333;
+      --green: #00ff88;
+      --bg: #080808;
+      --bg2: #0e0e0e;
+      --bg3: #141414;
+      --text: #d8d8d8;
+      --text-dim: #888;
+      --text-muted: #444;
+      --border: rgba(0, 229, 255, 0.1);
+      --mono: 'JetBrains Mono', monospace;
+      --pixel: 'Press Start 2P', monospace;
     }
 
-    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
-    html { scroll-behavior:smooth }
-    @media (prefers-reduced-motion:reduce) {
-      html { scroll-behavior:auto }
-      *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important }
+    html {
+      scroll-behavior: smooth
     }
 
     body {
-      background:var(--ground); color:var(--text);
-      font-family:var(--mono); font-size:var(--cell); line-height:1.6;
-      -webkit-font-smoothing:antialiased; overflow-x:hidden;
-      transition:background .2s,color .2s;
-    }
-    /* the faint CRT texture, same as the terminal's scanline */
-    body::after {
-      content:''; position:fixed; inset:0; z-index:99; pointer-events:none;
-      background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.13) 3px,rgba(0,0,0,.13) 4px);
-      opacity:.45;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.7;
+      overflow-x: hidden;
+      min-height: 100vh;
     }
 
-    a { color:var(--primary); text-decoration:none }
-    a:hover { text-decoration:underline; text-underline-offset:3px }
-    a:focus-visible, button:focus-visible { outline:2px solid var(--primary); outline-offset:2px }
-
-    .wrap { max-width:112ch; margin:0 auto; padding:0 clamp(1rem,4vw,3rem) }
-
-    /* ── boot: the scanline, exactly as the terminal opens ── */
-    #boot {
-      position:fixed; inset:0; z-index:500; background:var(--ground);
-      transition:opacity .45s ease, visibility .45s;
-    }
-    #boot.gone { opacity:0; visibility:hidden }
-    #sweep {
-      position:absolute; left:0; right:0; height:0;
-      border-top:1px solid var(--primary);
-      box-shadow:0 0 12px var(--primary), 0 2px 0 var(--dim), 0 4px 0 var(--dim);
-      top:0;
+    /* scanlines */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, 0.1) 3px, rgba(0, 0, 0, 0.1) 4px);
+      pointer-events: none;
+      z-index: 9999;
     }
 
-    /* ── header: portrait left, identity right — no boxes ── */
-    header { padding:clamp(1.5rem,4vw,3rem) 0 1rem }
-    .hero { display:flex; gap:clamp(1.5rem,5vw,5rem); align-items:flex-start; flex-wrap:wrap }
-
-    #portrait {
-      font-family:var(--mono); font-size:calc(var(--cell) * .84);
-      line-height:1.05; letter-spacing:0; white-space:pre;
-      color:var(--primary); flex:0 0 auto;
-      text-shadow:0 0 14px color-mix(in srgb,var(--primary) 30%,transparent);
+    /* ─── MATRIX ─── */
+    #matrix-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 100;
+      transition: opacity 0.8s ease;
     }
 
-    .ident { flex:1 1 22ch; padding-top:clamp(0rem,4vw,3.5rem); min-width:22ch }
-    .ident h1 {
-      font-size:calc(var(--cell) * 1.5); font-weight:700; letter-spacing:.06em;
-      color:var(--text); line-height:1.3; text-wrap:balance;
+    /* ─── BOOT ─── */
+    #boot-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s;
     }
-    .ident .role { color:var(--dim-mid); margin-top:.35rem }
 
-    nav { margin-top:1.8rem; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.35rem 1.5rem; max-width:44ch }
-    @media (max-width:560px) { nav { grid-template-columns:repeat(2,1fr) } }
-    nav a { color:var(--dim-mid); white-space:nowrap; padding:.1rem 0 }
-    nav a::before { content:'  '; white-space:pre }
-    nav a:hover, nav a:focus-visible { color:var(--secondary); text-decoration:none }
-    nav a:hover::before, nav a:focus-visible::before { content:'▸ ' }
-    nav a.on { color:var(--primary); font-weight:700 }
-    nav a.on::before { content:'▸ ' }
-
-    /* ── the two rules, and nothing else ── */
-    hr { border:0; border-top:1px solid var(--rule); margin:1.4rem 0 }
-
-    /* ── content: one column, blank row between entries ── */
-    main { padding:.6rem 0 2rem; min-height:38vh }
-    section { display:none }
-    section.on { display:block }
-
-    h2 {
-      color:var(--primary); font-size:var(--cell); font-weight:700;
-      letter-spacing:.14em; text-transform:uppercase; margin:2rem 0 1rem;
+    #boot-screen.active {
+      opacity: 1;
+      pointer-events: all;
     }
-    h2:first-child { margin-top:0 }
 
-    .entry { margin:0 0 1.9rem; padding-left:1rem }
-    .entry .hd { display:flex; gap:.7rem; align-items:baseline; flex-wrap:wrap; margin-left:-1rem }
-    .dot { width:1ch; display:inline-block }
-    .dot.live { color:var(--success) }
-    .dot.wip { color:var(--warning) }
-    .dot.research { color:var(--purple) }
-    .entry .name { color:var(--text); font-weight:700 }
-    .entry .hl { color:var(--accent) }
-    .entry p { color:var(--dim-mid); margin-top:.3rem; max-width:80ch }
-    .entry .tags { color:var(--dim); margin-top:.3rem }
-    .entry .gh { color:var(--warning); display:inline-block; margin-top:.3rem }
-    .kv { display:grid; grid-template-columns:14ch 1fr; gap:.15rem 1rem; max-width:80ch }
-    .kv dt { color:var(--dim) }
-    .kv dd { color:var(--text) }
-    .bar { display:inline-block; color:var(--dim) }
-    .bar i { font-style:normal }
-    .muted { color:var(--dim-mid) }
+    #boot-text {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--cyan);
+      max-width: 600px;
+      width: 90%;
+      line-height: 2.2;
+      white-space: pre-wrap;
+    }
 
-    /* ── footer: heartbeat left, telemetry right ── */
-    footer {
-      border-top:1px solid var(--rule); padding:.7rem 0 2rem;
-      display:flex; gap:1rem; align-items:baseline; flex-wrap:wrap;
-      color:var(--dim-mid);
+    .bl {
+      display: block;
+      opacity: 0;
+      transition: opacity 0.15s;
     }
-    #beat { color:var(--success); width:1ch; display:inline-block }
-    .tele { margin-left:auto; color:var(--dim) }
-    .themes { display:flex; gap:.35rem; align-items:center }
-    .sw { width:14px; height:14px; border-radius:50%; border:1px solid var(--dim); cursor:pointer; padding:0 }
-    .sw[aria-pressed="true"] { border-color:var(--text); transform:scale(1.25) }
-    .sw:hover { transform:scale(1.25) }
 
-    .cmd {
-      color:var(--text); background:none; border:0; padding:0;
-      font:inherit; cursor:pointer;
+    .bl.show {
+      opacity: 1;
     }
-    .cmd .p { color:var(--success) }
-    .cmd:hover { color:var(--primary) }
-    #toast {
-      position:fixed; left:50%; bottom:1.5rem; transform:translate(-50%,1rem);
-      background:var(--ground); border:1px solid var(--primary); color:var(--text);
-      padding:.4rem .8rem; opacity:0; pointer-events:none; transition:.25s; z-index:200;
+
+    .b-dim {
+      color: var(--text-muted);
     }
-    #toast.on { opacity:1; transform:translate(-50%,0) }
-</style>
+
+    .b-ok {
+      color: var(--green);
+    }
+
+    .b-err {
+      color: var(--red);
+    }
+
+    .b-amber {
+      color: var(--amber);
+    }
+
+    /* ─── ALERT ─── */
+    #alert-screen {
+      position: fixed;
+      inset: 0;
+      background: #050000;
+      z-index: 210;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    #alert-screen.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .alert-title {
+      font-size: clamp(13px, 2.5vw, 20px);
+      color: var(--red);
+      letter-spacing: 2px;
+      margin-bottom: 18px;
+      animation: flicker 0.12s infinite alternate;
+    }
+
+    .alert-body {
+      font-size: 12px;
+      color: var(--red);
+      line-height: 2.2;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .alert-joke {
+      font-size: 13px;
+      color: var(--cyan);
+      opacity: 0;
+      transition: opacity 0.8s;
+    }
+
+    .alert-joke.show {
+      opacity: 1;
+    }
+
+    @keyframes flicker {
+      from {
+        opacity: 1
+      }
+
+      to {
+        opacity: 0.65
+      }
+    }
+
+    /* ─── PORTFOLIO ─── */
+    #portfolio {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    #portfolio.visible {
+      display: flex;
+    }
+
+    /* HOME */
+    #home-screen {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr auto;
+      min-height: 100vh;
+    }
+
+    @media(max-width:800px) {
+      #home-screen {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+      }
+    }
+
+    /* Left panel */
+    .portrait-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      border-right: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media(max-width:800px) {
+      .portrait-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 20px;
+        min-height: 180px;
+      }
+    }
+
+    #portrait-canvas {
+      display: none;
+    }
+
+    /* Text-based braille portrait — mirrors SSH TUI exactly */
+    #portrait-pre {
+      font-family: var(--mono);
+      font-size: clamp(7px, 0.95vw, 11px);
+      color: var(--cyan);
+      text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+      line-height: 1.35;
+      white-space: pre;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      letter-spacing: 0;
+    }
+
+    #portrait-pre.show {
+      opacity: 1;
+    }
+
+    /* Right panel */
+    .name-panel {
+      padding: 44px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    @media(max-width:800px) {
+      .name-panel {
+        padding: 28px 24px;
+      }
+    }
+
+    .name-pixel {
+      font-family: var(--pixel);
+      font-size: clamp(18px, 3.5vw, 32px);
+      color: var(--cyan);
+      line-height: 1.4;
+      text-shadow: 0 0 24px var(--cyan-glow), 0 0 60px rgba(0, 229, 255, 0.1);
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+    .name-pixel span {
+      display: block;
+    }
+
+    .surname {
+      font-family: var(--pixel);
+      font-size: clamp(7px, 1.1vw, 11px);
+      color: var(--pink);
+      letter-spacing: 6px;
+      margin-bottom: 28px;
+      text-shadow: 0 0 12px rgba(255, 79, 163, 0.5);
+    }
+
+    .diamond {
+      color: var(--pink);
+    }
+
+    .tagline-wrap {
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .tagline {
+      font-size: 12.5px;
+      color: var(--text-dim);
+      border-right: 2px solid var(--cyan);
+      white-space: nowrap;
+      overflow: hidden;
+      width: 0;
+    }
+
+    .tagline.animate {
+      animation: typing 2.2s steps(60, end) 0.5s forwards, cursorBlink 0.8s step-end infinite;
+    }
+
+    @keyframes typing {
+      to {
+        width: 100%
+      }
+    }
+
+    @keyframes cursorBlink {
+
+      0%,
+      100% {
+        border-color: var(--cyan)
+      }
+
+      50% {
+        border-color: transparent
+      }
+    }
+
+    .bio {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 2;
+      margin-bottom: 20px;
+      max-width: 480px;
+    }
+
+    .bio .hw {
+      color: var(--text);
+    }
+
+    .bio .hc {
+      color: var(--cyan);
+    }
+
+    .bio .hp {
+      color: var(--pink);
+    }
+
+    .bio .ha {
+      color: var(--amber);
+    }
+
+    .last-pushed {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .last-pushed .lp-msg {
+      color: var(--amber);
+    }
+
+    /* bottom tab bar */
+    .bottom-bar {
+      grid-column: 1/-1;
+      border-top: 1px solid var(--border);
+      background: var(--bg2);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      height: 46px;
+      gap: 2px;
+    }
+
+    .tab-btn {
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 6px 18px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--cyan);
+      color: #000;
+      font-weight: 700;
+    }
+
+    .tab-btn:not(.active):hover {
+      color: var(--cyan);
+    }
+
+    .controls-hint {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    @media(max-width:600px) {
+      .controls-hint {
+        display: none;
+      }
+    }
+
+    /* Content area */
+    #content-area {
+      padding: 40px;
+      max-width: 980px;
+      margin: 0 auto;
+      width: 100%;
+      display: none;
+    }
+
+    #content-area.visible {
+      display: block;
+    }
+
+    @media(max-width:768px) {
+      #content-area {
+        padding: 20px;
+      }
+    }
+
+    .sec-hdr {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .sec-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    .sec-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+
+    /* ─── PROJECTS ─── */
+    .proj-item {
+      display: flex;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--bg3);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .proj-item.in {
+      opacity: 1;
+      transform: none;
+    }
+
+    .proj-num {
+      color: var(--text-muted);
+      font-size: 11px;
+      width: 26px;
+      flex-shrink: 0;
+      padding-top: 3px;
+    }
+
+    .proj-body {
+      flex: 1;
+    }
+
+    .proj-hdr {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .proj-name {
+      color: var(--cyan);
+      font-weight: 700;
+      font-size: 13.5px;
+    }
+
+    .badge {
+      font-size: 9px;
+      padding: 2px 7px;
+      border: 1px solid;
+    }
+
+    .badge.live {
+      color: var(--green);
+      border-color: var(--green);
+      animation: livePulse 2s infinite;
+    }
+
+    .badge.wip {
+      color: var(--amber);
+      border-color: var(--amber);
+    }
+
+    .badge.research {
+      color: var(--pink);
+      border-color: var(--pink);
+    }
+
+    @keyframes livePulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.45
+      }
+    }
+
+    .proj-hl {
+      font-size: 10px;
+      color: var(--amber);
+    }
+
+    .proj-desc {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.8;
+      margin-bottom: 10px;
+    }
+
+    .proj-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 6px;
+    }
+
+    .tag {
+      font-size: 10px;
+      padding: 2px 7px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      opacity: 0;
+      transform: scale(0.85);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .tag.in {
+      opacity: 1;
+      transform: none;
+    }
+
+    .proj-gh {
+      font-size: 11px;
+      color: var(--amber);
+      text-decoration: none;
+    }
+
+    .proj-gh:hover {
+      text-decoration: underline;
+    }
+
+    /* ─── ABOUT ─── */
+    .greeting {
+      font-size: 13px;
+      color: var(--cyan);
+      margin-bottom: 24px;
+    }
+
+    .subsection-title {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--pink);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .subsection-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .exp-entry {
+      margin-bottom: 22px;
+      opacity: 0;
+      transform: translateX(-8px);
+      transition: opacity 0.4s, transform 0.4s;
+    }
+
+    .exp-entry.in {
+      opacity: 1;
+      transform: none;
+    }
+
+    .exp-role {
+      font-weight: 700;
+      color: var(--amber);
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .exp-co {
+      color: var(--cyan);
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .exp-period {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+
+    .exp-bullets {
+      list-style: none;
+    }
+
+    .exp-bullets li {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      padding-left: 14px;
+      position: relative;
+      margin-bottom: 3px;
+    }
+
+    .exp-bullets li::before {
+      content: '▶';
+      position: absolute;
+      left: 0;
+      color: var(--cyan);
+      font-size: 8px;
+      top: 4px;
+    }
+
+    .skills-wrap {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 18px;
+    }
+
+    .sk-cat-name {
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+
+    .sk-list {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 2;
+    }
+
+    .drives-me {
+      font-size: 12.5px;
+      color: var(--text-dim);
+      line-height: 2;
+      border-left: 2px solid var(--pink);
+      padding-left: 16px;
+    }
+
+    .drives-me em {
+      color: var(--text);
+      font-style: normal;
+    }
+
+    .resume-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--amber);
+      text-decoration: none;
+      margin-top: 18px;
+      border-bottom: 1px solid rgba(255, 183, 0, 0.3);
+      padding-bottom: 2px;
+    }
+
+    .resume-link:hover {
+      border-color: var(--amber);
+    }
+
+    /* ─── CONTACTS ─── */
+    .contact-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--bg3);
+      text-decoration: none;
+      color: inherit;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .contact-item.in {
+      opacity: 1;
+      transform: none;
+    }
+
+    .ci-icon {
+      color: var(--cyan);
+      font-size: 13px;
+      width: 36px;
+      flex-shrink: 0;
+      font-style: normal;
+    }
+
+    .ci-label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .ci-val {
+      font-size: 13px;
+      color: var(--text-dim);
+      transition: color 0.2s;
+    }
+
+    .contact-item:hover .ci-val {
+      color: var(--cyan);
+    }
+
+    .ssh-box {
+      margin-top: 28px;
+      padding: 16px 20px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+
+    .ssh-box:hover {
+      border-color: var(--cyan);
+    }
+
+    .ssh-note {
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .ssh-note span {
+      color: var(--cyan);
+    }
+
+    .ssh-cmd-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--amber);
+    }
+
+    .ssh-copy-hint {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+
+    .ssh-box:hover .ssh-copy-hint {
+      color: var(--cyan);
+    }
+
+    @keyframes sshFlash {
+      from {
+        background: rgba(0, 229, 255, 0.1)
+      }
+
+      to {
+        background: var(--bg2)
+      }
+    }
+
+    /* ─── GLITCH ─── */
+    @keyframes glitch {
+
+      0%,
+      100% {
+        clip-path: none;
+        transform: none;
+      }
+
+      4% {
+        clip-path: polygon(0 24px, 100% 24px, 100% 30px, 0 30px);
+        transform: skew(-0.4deg);
+      }
+
+      8% {
+        clip-path: none;
+        transform: none;
+      }
+
+      14% {
+        clip-path: polygon(0 62px, 100% 62px, 100% 68px, 0 68px);
+        transform: translate(-3px);
+      }
+
+      18% {
+        clip-path: none;
+        transform: none;
+      }
+    }
+
+    .glitch {
+      animation: glitch 5s infinite;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       RESPONSIVE — TABLET (≤ 800px)
+       ═══════════════════════════════════════════════════════ */
+    @media (max-width: 800px) {
+      /* Name panel first, portrait below */
+      .portrait-panel { order: 2; min-height: 220px; }
+      .name-panel     { order: 1; }
+
+      /* Scale braille portrait to fit narrower viewport */
+      #portrait-pre {
+        font-size: clamp(5px, 1.4vw, 8px);
+        transform-origin: top center;
+      }
+
+      /* Tagline: stop the nowrap animation, let it flow */
+      .tagline {
+        white-space: normal;
+        width: 100% !important;
+        overflow: visible;
+        border-right: none;
+        animation: none;
+      }
+      .tagline.animate {
+        animation: none;
+        width: 100% !important;
+      }
+
+      /* SSH box — wrap long command on narrower screens */
+      .ssh-cmd-row { flex-wrap: wrap; }
+      .ssh-cmd-row > span:first-child {
+        word-break: break-all;
+        font-size: 11px;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       RESPONSIVE — PHONE (≤ 480px)
+       ═══════════════════════════════════════════════════════ */
+    @media (max-width: 480px) {
+      body { font-size: 13px; }
+
+      /* Show portrait but scale it way down for phone screens */
+      .portrait-panel {
+        min-height: unset;
+        max-height: 260px;
+        overflow: hidden;
+        padding: 16px 12px;
+        align-items: flex-start;
+        justify-content: center;
+      }
+
+      /* Tiny font so the braille art fits in ~360px width */
+      #portrait-pre {
+        font-size: 4.5px !important;
+        line-height: 1.3;
+        letter-spacing: 0;
+      }
+
+      .name-panel { padding: 20px 16px; }
+      .name-pixel { font-size: clamp(16px, 5.5vw, 22px); }
+      .surname    { font-size: 7px; letter-spacing: 3px; margin-bottom: 20px; }
+      .bio        { font-size: 11.5px; }
+      .last-pushed { font-size: 10px; }
+
+      /* Larger touch targets on tab bar */
+      .bottom-bar { padding: 0 4px; height: 50px; }
+      .tab-btn    { font-size: 11px; padding: 8px 10px; }
+
+      /* Boot & alert screens */
+      #boot-text   { font-size: 11px; line-height: 2; }
+      .alert-title { font-size: 12px; }
+      .alert-body  { font-size: 10px; }
+
+      /* Content sections */
+      #content-area { padding: 16px 14px; }
+      .sec-sub      { margin-bottom: 20px; }
+
+      /* Projects */
+      .proj-desc { font-size: 11.5px; }
+      .proj-hdr  { gap: 4px; }
+
+      /* SSH box in contacts */
+      .ssh-box { padding: 12px 14px; }
+      .ssh-cmd-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .ssh-cmd-row > span:first-child {
+        font-size: 10.5px;
+        word-break: break-all;
+      }
+      .ssh-copy-hint { margin-left: 0; font-size: 10px; }
+
+      /* Skills: 2-col grid on phone instead of auto-fill */
+      .skills-wrap { grid-template-columns: 1fr 1fr; gap: 12px; }
+
+      /* Experience entries */
+      .exp-role { font-size: 12px; }
+      .exp-co   { font-size: 11px; }
+      .exp-bullets li { font-size: 11px; }
+    }
+  </style>
 </head>
+
 <body>
 
-<div id="boot"><div id="sweep"></div></div>
+  <canvas id="matrix-canvas"></canvas>
 
-<div class="wrap">
-  <header>
-    <div class="hero">
-      <pre id="portrait" aria-label="Braille portrait of Mohith Akshay Duggirala"></pre>
-      <div class="ident">
-        <h1 id="nm">MOHITH AKSHAY DUGGIRALA</h1>
-        <div class="role" id="rl">ML Engineer &amp; Builder</div>
-        <nav id="nav">
-          <a href="#projects"  data-t="projects"  class="on">Projects</a>
-          <a href="#about"     data-t="about">About</a>
-          <a href="#resume"    data-t="resume">Resume</a>
-          <a href="#contact"   data-t="contact">Contact</a>
-          <a href="#now"       data-t="now">Now</a>
-          <a href="https://github.com/Trafalgar-2006/portfolio" target="_blank" rel="noopener noreferrer">Source</a>
-        </nav>
+  <div id="boot-screen">
+    <div id="boot-text"></div>
+  </div>
+
+  <div id="alert-screen">
+    <div style="text-align:center;font-family:var(--mono);">
+      <div class="alert-title">⚠ UNAUTHORIZED ACCESS DETECTED ⚠</div>
+      <div class="alert-body">
+        Intruder identified at: <span id="alert-ip">---</span><br>
+        This system is private property.<br>
+        Connection origin has been logged.<br>
+        Initiating trace protocol...<br>
+        <span id="trace-bar">[░░░░░░░░░░] 0%</span><br>
+        Notifying authorities...
+      </div>
+      <div class="alert-joke" id="alert-joke">
+        just kidding. welcome. :)
       </div>
     </div>
-  </header>
+  </div>
 
-  <hr>
+  <div id="portfolio">
 
-  <main>
-    <section id="projects" class="on"><h2>Work</h2><div id="work"></div></section>
-    <section id="about"><div id="bio"></div></section>
-    <section id="resume"><div id="cv"></div></section>
-    <section id="contact"><h2>Contact</h2><dl class="kv" id="contacts"></dl>
-      <p class="muted" style="margin-top:1.5rem">
-        Or say hello over SSH —
-        <button class="cmd" id="ssh2"><span class="p">$</span> ssh mohith.is-a.dev</button>
-      </p>
-    </section>
-    <section id="now"><h2>Now</h2><div id="nowlist"></div></section>
-  </main>
+    <div id="home-screen">
 
-  <footer>
-    <span id="beat">.</span>
-    <button class="cmd" id="ssh1"><span class="p">$</span> ssh mohith.is-a.dev</button>
-    <span class="themes"><button class="sw" data-set="dracula" title="dracula" aria-pressed="true" style="background:#8BE9FD"></button>
-        <button class="sw" data-set="matrix" title="matrix" aria-pressed="false" style="background:#00FF41"></button>
-        <button class="sw" data-set="amber" title="amber" aria-pressed="false" style="background:#FFAA00"></button>
-        <button class="sw" data-set="nord" title="nord" aria-pressed="false" style="background:#88C0D0"></button>
-        <button class="sw" data-set="cyberpunk" title="cyberpunk" aria-pressed="false" style="background:#FF007F"></button></span>
-    <span class="tele" id="tele"></span>
-  </footer>
-</div>
-
-<div id="toast">copied</div>
-
-<script>
-'use strict';
-const PORTRAIT = '⠀⠀⠀⠀⠀⠀⠀⢀⡄⠀⠀⠀⠀⠀⣀⢀\n⠀⠀⠀⠀⠀⢀⣼⠋⠄⡀⠀⢀⣴⣿⣟⣩⣿⠀⣀⡀\n⠀⠀⠀⠀⠀⢺⣾⣏⣰⣤⣤⣼⣿⣿⢿⣿⣿⣿⣭⣽⣻⣴⣤\n⠀⠀⠀⢰⣀⣿⣿⣿⣿⡿⣿⢿⣿⣟⣿⣿⣿⣿⣿⣿⣿⣾⢿⣷⣄\n⠀⢀⣴⣿⢯⣻⣟⣯⣽⣿⣽⣿⣿⣿⣿⣿⣝⣿⣿⣿⣿⣿⣾⡄⣷⡐⡀\n⢀⣿⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣾⣿⣿⣿⣿⣿⣿⣯⣍⠳⡄\n⠈⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣽⣷⣻⣿⣿⣻⣿⣿⣿⣿⣯⣷⡅\n⢰⣿⣿⣿⣿⣿⣯⢈⣽⠛⠫⢽⡻⢿⣿⣿⣿⣿⣿⣧⣿⣿⣿⣿⣷⢹⣗\n⢌⣿⣿⣿⣿⣿⡿⠛⠁⠀⠐⣦⣄⡑⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⣇⠀⡀\n⣾⣿⣿⣿⣿⠏⠀⠀⠰⠤⢲⣬⣿⡏⠀⠀⠙⠻⢿⣿⣿⣿⣿⣿⣿⣿⢯⣔⠃\n⡽⣿⣿⣿⡏⠀⠀⠀⠀⠀⠌⡹⠗⠉⠀⢘⢠⣗⣦⣌⠛⢿⣿⣿⣿⣿⣿⣏⠇\n⠑⢀⡈⠙⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠿⣆⡈⠙⢮⣝⢿⣿⣿⡷⡜⢀⠄\n⠀⠊⠀⠀⠀⠀⠀⠀⠀⡠⠒⠀⠀⠀⠀⠀⠈⢤⡙⢻⡆⣿⣟⣰⣿⣿⣿⡉⠁\n⠀⠀⠀⠀⠀⠀⠀⣤⠏⠀⠀⠈⢳⠀⣀⠀⠀⠀⠀⠀⠀⣿⣹⣿⣿⣿⡃\n⢸⣾⠀⠀⠀⠀⢠⣿⣀⠀⠀⠀⠻⠟⠿⠇⢸⠀⠀⠀⠘⣷⣿⣿⡿⠟⠁\n⠀⣿⠀⠀⠀⠀⠰⢿⣥⣀⣀⠈⠐⠀⡀⠀⢸⡄⠀⠀⢸⣿⡿⠋⠁\n⢠⣿⠀⠀⠀⠀⠈⠀⠻⠛⠿⣿⣶⣆⠸⣧⡾⠄⠠⢀⣿⠋\n⢰⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⣿⠟⠻⠁⠀⠀⠈⠉\n⠈⡇⠀⠀⠀⠀⠀⠀⠀⠀⢠⠀⠀⠀⠀⠁⠠⢈⠲';
-
-// ── fallback content (live data comes from /api/content) ──
-let PROJECTS = [
-  {title:'EmbedGen — Domain-Specific Code LLM',status:'wip',label:'WIP',hl:'',
-   desc:'A 62M-parameter transformer built from scratch on embedded-systems C/C++. Custom BPE tokeniser, RoPE + RMSNorm, quantised to ONNX FP16 for edge deployment.',
-   tags:['Python','PyTorch','ONNX','CUDA'],github:'github.com/trafalgar-2006/EmbedGen'},
-  {title:'ISRO LEOS — Sim-to-Real Vision',status:'research',label:'Research',hl:'22 FPS on Jetson',
-   desc:'Synthetic-to-real perception pipeline for ISRO\u2019s Low Earth Orbit Satellite lab. 6,000+ annotated images from BlenderProc; YOLOv7 on Jetson Xavier via TensorRT.',
-   tags:['BlenderProc','YOLOv7','TensorRT'],github:''},
-  {title:'Autonomous Trading System',status:'live',label:'Live',hl:'',
-   desc:'AI swing-trading agent generating signals across the US equity market, executing paper trades via Alpaca with position sizing and stop-loss logic.',
-   tags:['Python','SQLite','Alpaca API'],github:'github.com/trafalgar-2006/autonomous-trading-agent'},
-];
-let CONTACTS = [
-  {label:'Email',value:'d.mohithakshay@gmail.com'},
-  {label:'LinkedIn',value:'linkedin.com/in/dmohithakshay'},
-  {label:'GitHub',value:'github.com/trafalgar-2006'},
-  {label:'Website',value:'webcraftstudios.co.in'},
-];
-const ROLES = [
-  {t:'Computer Vision Intern',o:'ISRO – LEOS',p:'Dec 2025 – Jan 2026',
-   b:['BlenderProc pipeline → 6,000+ COCO/YOLO annotated images','YOLOv7 on Jetson Xavier via TensorRT — 22 FPS real-time','GAN domain adaptation to close the sim-to-real gap']},
-  {t:'Founder & Lead Engineer',o:'Webcraft Studios',p:'Jan 2025 – Present',
-   b:['Digital agency, multiple international SaaS clients in year one']},
-  {t:'Software Engineering Intern',o:'SenseOps Tech Solutions',p:'May – Jul 2025',
-   b:['Custom UDP/TCP packet analyser for a vibration sensor network']},
-];
-const SKILLS = [
-  {n:'Python',v:95,c:'primary'},{n:'Go',v:82,c:'primary'},{n:'TypeScript',v:75,c:'primary'},
-  {n:'PyTorch',v:88,c:'secondary'},{n:'YOLOv7',v:85,c:'secondary'},{n:'TensorRT',v:72,c:'secondary'},
-  {n:'React',v:80,c:'purple'},{n:'Docker',v:83,c:'success'},{n:'AWS',v:68,c:'success'},
-];
-const NOW = {
-  building:['EmbedGen — LLM fine-tuning on embedded-systems code','Autonomous trading agent (paper trading, live)','This portfolio — always iterating'],
-  learning:['Distributed systems & consensus (Raft)','Rust for embedded targets','Advanced quantisation — AWQ, GPTQ'],
-  reading:['"Designing Data-Intensive Applications" — Kleppmann','"The Pragmatic Programmer" — Hunt & Thomas'],
-};
-
-const $ = s => document.querySelector(s);
-const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-// ── theme, matching `t` in the terminal ──
-function setTheme(n) {
-  document.documentElement.setAttribute('data-theme', n);
-  document.querySelectorAll('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.set === n)));
-  try { localStorage.setItem('theme', n) } catch (_) {}
-}
-document.querySelectorAll('.sw').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.set)));
-try { const s = localStorage.getItem('theme'); if (s) setTheme(s) } catch (_) {}
-
-// ── copy the ssh command ──
-function copySSH() {
-  const cmd = 'ssh mohith.is-a.dev';
-  const done = () => { const t=$('#toast'); t.textContent='copied — paste it in your terminal';
-    t.classList.add('on'); setTimeout(()=>t.classList.remove('on'), 2200); };
-  if (navigator.clipboard) navigator.clipboard.writeText(cmd).then(done).catch(done);
-  else { const a=document.createElement('textarea'); a.value=cmd; document.body.appendChild(a);
-    a.select(); try{document.execCommand('copy')}catch(_){} a.remove(); done(); }
-}
-$('#ssh1').addEventListener('click', copySSH);
-$('#ssh2').addEventListener('click', copySSH);
-
-// ── tabs, same nav model as the terminal ──
-function show(id) {
-  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === id));
-  document.querySelectorAll('nav a[data-t]').forEach(a => a.classList.toggle('on', a.dataset.t === id));
-}
-document.querySelectorAll('nav a[data-t]').forEach(a =>
-  a.addEventListener('click', e => { e.preventDefault(); show(a.dataset.t); }));
-
-// ── render ──
-const DOT = {live:'●', wip:'◐', research:'◇'};
-function work() {
-  $('#work').innerHTML = PROJECTS.map(p => `
-    <div class="entry">
-      <div class="hd">
-        <span class="dot ${esc(p.status)}">${DOT[p.status] || '◇'}</span>
-        <span class="name">${esc(p.title)}</span>
-        ${p.hl ? `<span class="hl">⚡ ${esc(p.hl)}</span>` : ''}
+      <!-- LEFT: braille portrait (matches SSH TUI) -->
+      <div class="portrait-panel">
+        <canvas id="portrait-canvas" width="1" height="1"></canvas>
+        <pre id="portrait-pre"></pre>
       </div>
-      <p>${esc(p.desc)}</p>
-      ${p.tags && p.tags.length ? `<div class="tags">${p.tags.map(esc).join('  ·  ')}</div>` : ''}
-      ${p.github ? `<a class="gh" href="https://${esc(p.github)}" target="_blank" rel="noopener noreferrer">→ ${esc(p.github)}</a>` : ''}
-    </div>`).join('');
-}
-function bio() {
-  $('#bio').innerHTML = '<h2>Experience</h2>' + ROLES.map(r => `
-    <div class="entry">
-      <div class="hd"><span class="name">${esc(r.t)}</span></div>
-      <p style="color:var(--secondary)">${esc(r.o)} <span class="muted">${esc(r.p)}</span></p>
-      ${r.b.map(x => `<p>▸ ${esc(x)}</p>`).join('')}
-    </div>`).join('') +
-    '<h2>Education</h2><div class="entry"><div class="hd"><span class="name">Manipal Institute of Technology, Bengaluru</span></div>' +
-    '<p style="color:var(--secondary)">B.Tech — Electronics &amp; Computer Engineering <span class="muted">Aug 2023 – Jul 2027</span></p></div>';
-}
-function cv() {
-  const bar = v => { const f = Math.round(v/100*24); return '<span class="bar"><i>'+'━'.repeat(f)+'</i>'+'━'.repeat(24-f)+'</span>'; };
-  $('#cv').innerHTML = '<h2>Toolkit</h2><dl class="kv">' +
-    SKILLS.map(s => `<dt>${esc(s.n)}</dt><dd style="color:var(--${s.c})">${bar(s.v)}</dd>`).join('') +
-    '</dl><h2>Download</h2><p><a href="https://github.com/Trafalgar-2006/portfolio/raw/master/Mohith_Akshay_Duggirala_Resume.pdf" target="_blank" rel="noopener noreferrer">Resume (PDF)</a></p>';
-}
-function safeHref(v) {
-  const s = String(v).trim();
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return 'mailto:' + encodeURI(s);
-  const bare = s.replace(/^https?:\/\//i, '');
-  if (!/^[\w.-]+\.[a-z]{2,}(\/\S*)?$/i.test(bare)) return '';
-  return 'https://' + encodeURI(bare);
-}
-function contacts() {
-  $('#contacts').innerHTML = CONTACTS.map(c => {
-    const h = safeHref(c.value);
-    const v = h ? `<a href="${esc(h)}" target="_blank" rel="noopener noreferrer">${esc(c.value)}</a>` : esc(c.value);
-    return `<dt>${esc(c.label)}</dt><dd>${v}</dd>`;
-  }).join('');
-}
-function now() {
-  $('#nowlist').innerHTML = Object.entries(NOW).map(([k, items]) =>
-    `<div class="entry"><div class="hd"><span class="muted" style="letter-spacing:.14em">${k.toUpperCase()}</span></div>` +
-    items.map(i => `<p>▸ ${esc(i)}</p>`).join('') + '</div>').join('');
-}
 
-// ── live content, same source as the SSH TUI ──
-async function live() {
-  try {
-    const r = await fetch('/api/content', {cache:'no-cache'});
-    if (!r.ok) return;
-    const d = await r.json();
-    if (Array.isArray(d.projects) && d.projects.length) {
-      PROJECTS = d.projects.map(p => ({
-        title:String(p.title||''), status:['live','wip','research'].includes(p.status)?p.status:'wip',
-        label:String(p.label||''), hl:String(p.hl||''), desc:String(p.desc||''),
-        tags:Array.isArray(p.tags)?p.tags.map(String):[], github:String(p.github||''),
-      }));
-      work();
+      <!-- RIGHT: name + bio -->
+      <div class="name-panel">
+        <div class="name-pixel glitch">
+          <span>MOHITH</span>
+          <span>AKSHAY</span>
+        </div>
+        <div class="surname">· D U G G I R A L A ·</div>
+
+        <div class="tagline-wrap">
+          <div class="tagline">is an engineer, builder &amp; creator who turns ideas into products.</div>
+        </div>
+
+        <p class="bio">
+          Founder &amp; Lead Engineer of <span class="hp">Webcraft Studios</span>,
+          building full-stack apps, Computer Vision pipelines,
+          and scalable AI perception systems.<br><br>
+          <span class="hw">B.Tech in Electronics &amp; Computer Engineering</span> @
+          <span class="hc">Manipal Institute of Technology</span>
+          (Aug 2023–Jul 2027), Bengaluru.<br><br>
+          President of <span class="ha">MBOSC</span> (Manipal Bengaluru Open Source Community).<br><br>
+          Former CV Research Intern at <span class="hc">ISRO – LEOS</span>.
+        </p>
+
+        <div class="last-pushed" id="last-pushed">
+          last pushed: <span class="lp-msg">"..."</span> · fetching...
+        </div>
+      </div>
+
+      <!-- TAB BAR -->
+      <div class="bottom-bar">
+        <button class="tab-btn active" data-tab="projects" onclick="switchTab('projects')">Projects</button>
+        <button class="tab-btn" data-tab="about" onclick="switchTab('about')">About</button>
+        <button class="tab-btn" data-tab="contacts" onclick="switchTab('contacts')">Contacts</button>
+        <span class="controls-hint">[← → tabs · ↑↓ browse · q quit]</span>
+      </div>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div id="content-area">
+
+      <!-- PROJECTS -->
+      <div id="tab-projects" class="tab-pane">
+        <div class="sec-hdr"><span class="diamond">♦</span><span class="sec-title">Projects</span></div>
+        <div class="sec-sub">Things I've built</div>
+        <div id="projects-list"></div>
+      </div>
+
+      <!-- ABOUT -->
+      <div id="tab-about" class="tab-pane" style="display:none">
+        <div class="sec-hdr"><span class="diamond">♦</span><span class="sec-title">Experience</span></div>
+        <div class="greeting" id="time-greeting"></div>
+
+        <div style="margin-bottom:28px">
+          <div class="subsection-title">Work</div>
+
+          <div class="exp-entry">
+            <div class="exp-role">Computer Vision Research Intern</div>
+            <div class="exp-co">ISRO – LEOS</div>
+            <div class="exp-period">Dec 2025 – Jan 2026</div>
+            <ul class="exp-bullets">
+              <li>Synthetic data generation with BlenderProc — 6,000+ photo-realistic annotated images, COCO/RLE labels
+              </li>
+              <li>YOLOv7+Segmentation on NVIDIA Jetson via TensorRT — 22 FPS real-time inference</li>
+              <li>GAN-based sim-to-real style transfer (Unreal Engine 5 + NASA SPICE)</li>
+              <li>Reduced synthetic data generation time by 70% through path-tracing benchmarking</li>
+            </ul>
+          </div>
+
+          <div class="exp-entry">
+            <div class="exp-role">Founder &amp; Lead Engineer</div>
+            <div class="exp-co">Webcraft Studios</div>
+            <div class="exp-period">Jan 2025 – Present</div>
+            <ul class="exp-bullets">
+              <li>Founded and scaled to international SaaS clients including Myntra Minis (Flipkart) and Str8Fire.io
+              </li>
+              <li>Full-stack platforms — React, Next.js, Node.js, PostgreSQL with Stripe billing &amp; analytics</li>
+              <li>Built structured delivery pipeline; reduced average cycle time by 30%</li>
+            </ul>
+          </div>
+
+          <div class="exp-entry">
+            <div class="exp-role">Software Engineering Intern</div>
+            <div class="exp-co">SenseOps Tech Solutions</div>
+            <div class="exp-period">May 2025 – Jul 2025</div>
+            <ul class="exp-bullets">
+              <li>Rebuilt production website — mobile-first responsive design, improved Lighthouse scores</li>
+              <li>Designed custom UDP/TCP protocol for distributed vibration sensor network (10+ nodes)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="margin-bottom:28px">
+          <div class="subsection-title">Skills</div>
+          <div class="skills-wrap">
+            <div>
+              <div class="sk-cat-name">AI / ML</div>
+              <div class="sk-list">PyTorch · TensorFlow · LoRA · GGUF · YOLOv7 · TensorRT · OpenCV · ONNX · BlenderProc
+              </div>
+            </div>
+            <div>
+              <div class="sk-cat-name">Languages</div>
+              <div class="sk-list">Python · Go · TypeScript · JavaScript · C/C++ · SQL · HTML/CSS</div>
+            </div>
+            <div>
+              <div class="sk-cat-name">Web / Backend</div>
+              <div class="sk-list">React · Next.js · Node.js · FastAPI · Firebase · PostgreSQL · MongoDB · Stripe</div>
+            </div>
+            <div>
+              <div class="sk-cat-name">Tools</div>
+              <div class="sk-list">Docker · Git · CUDA · NVIDIA Jetson · Linux · AWS · Vercel · Figma · Unreal Engine 5
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div>
+          <div class="subsection-title">What drives me</div>
+          <p class="drives-me">
+            Shipping things that <em>actually work in production</em> —
+            from a live satellite CV pipeline at ISRO,
+            to a 62M-parameter LLM that outperforms CodeLLaMA-7B (which is 80× larger),
+            to a live autonomous trading system,
+            to this SSH portfolio you could be in right now.
+            <br><br>
+            The constraint isn't motivation. It's compute, time, and taste.
+          </p>
+          <a href="https://github.com/Trafalgar-2006/portfolio/raw/master/Mohith_Akshay_Duggirala_Resume.pdf"
+            target="_blank" class="resume-link">
+            Resume PDF →
+          </a>
+        </div>
+      </div>
+
+      <!-- CONTACTS -->
+      <div id="tab-contacts" class="tab-pane" style="display:none">
+        <div class="sec-hdr"><span class="diamond">♦</span><span class="sec-title">Contacts</span></div>
+        <div class="sec-sub">Let's connect! Feel free to reach out.</div>
+
+        <a href="mailto:d.mohithakshay@gmail.com" class="contact-item">
+          <span class="ci-icon">(@)</span>
+          <div>
+            <div class="ci-label">Email</div>
+            <div class="ci-val">d.mohithakshay@gmail.com</div>
+          </div>
+        </a>
+        <a href="https://webcraftstudios.co.in" target="_blank" rel="noopener noreferrer" class="contact-item">
+          <span class="ci-icon">(~)</span>
+          <div>
+            <div class="ci-label">Website</div>
+            <div class="ci-val">webcraftstudios.co.in</div>
+          </div>
+        </a>
+        <a href="https://linkedin.com/in/dmohithakshay" target="_blank" rel="noopener noreferrer" class="contact-item">
+          <span class="ci-icon">(in)</span>
+          <div>
+            <div class="ci-label">LinkedIn</div>
+            <div class="ci-val">linkedin.com/in/dmohithakshay</div>
+          </div>
+        </a>
+        <a href="https://github.com/trafalgar-2006" target="_blank" rel="noopener noreferrer" class="contact-item">
+          <span class="ci-icon">(gh)</span>
+          <div>
+            <div class="ci-label">GitHub</div>
+            <div class="ci-val">github.com/trafalgar-2006</div>
+          </div>
+        </a>
+
+        <div class="ssh-box" onclick="copySSH(this)">
+          <div class="ssh-note">You're viewing the web version. For the full experience:</div>
+          <div class="ssh-cmd-row">
+            <span>$ ssh ssh.mohith.is-a.dev -p 41074</span>
+            <span class="ssh-copy-hint">[ click to copy ]</span>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;font-size:11px;color:var(--text-muted);">
+          Built with Go + Bubbletea + Wish ·
+          <a href="https://github.com/trafalgar-2006/portfolio" target="_blank" rel="noopener noreferrer"
+            style="color:var(--text-muted);">github.com/trafalgar-2006/portfolio</a>
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </div><!-- /portfolio -->
+
+  <script>
+    // ═══ MATRIX ═══
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    resize(); window.addEventListener('resize', () => { resize(); initCols(); });
+
+    const katakana = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+    const allChars = katakana + '0123456789ABCDEFｦｧｨｩｪｫｬｭｮｯ!@#$%';
+    const FS = 14;
+    let cols, drops;
+    function initCols() { cols = Math.floor(canvas.width / FS); drops = Array.from({ length: cols }, () => Math.random() * canvas.height / FS); }
+    initCols();
+
+    function drawMatrix() {
+      ctx.fillStyle = 'rgba(8,8,8,0.06)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = `${FS}px 'JetBrains Mono',monospace`;
+      for (let i = 0; i < cols; i++) {
+        const ch = allChars[Math.floor(Math.random() * allChars.length)];
+        const r = Math.random();
+        ctx.fillStyle = r > .97 ? '#fff' : r > .75 ? '#00e5ff' : r > .45 ? 'rgba(0,180,220,0.65)' : 'rgba(0,80,120,0.35)';
+        ctx.fillText(ch, i * FS, drops[i] * FS);
+        if (drops[i] * FS > canvas.height && Math.random() > .975) drops[i] = 0;
+        drops[i]++;
+      }
     }
-    if (Array.isArray(d.contacts) && d.contacts.length) {
-      CONTACTS = d.contacts.map(c => ({label:String(c.label||''), value:String(c.value||'')}));
-      contacts();
+    let mInt = setInterval(drawMatrix, 38);
+
+    // ═══ BOOT ═══
+    const bootLines = [
+      { t: 'Establishing SSH connection to ssh.mohith.is-a.dev:41074...', c: '' },
+      { t: 'SSH-2.0-OpenSSH_9.6p1 Ubuntu-3ubuntu13.5', c: 'b-dim', d: 320 },
+      { t: 'Server host key: ED25519 SHA256:7Kp2mXqRv...', c: 'b-dim', d: 580 },
+      { t: '', c: '', d: 700 },
+      { t: '[████▓░░░░░] Loading...   ÿÿÿ ▓▒░ ERR ░▒ CORRUPT', c: 'b-err', d: 820 },
+      { t: 'Connection interrupted. Signal lost.', c: 'b-err', d: 1300 },
+      { t: 'Attempting recovery...', c: 'b-amber', d: 1550 },
+      { t: '[██████████] Recovery successful.', c: 'b-ok', d: 2050 },
+      { t: '', c: '', d: 2150 },
+      { t: '[OK] Authenticated.', c: 'b-ok', d: 2250 },
+      { t: '[OK] Decrypting portfolio data...', c: 'b-ok', d: 2420 },
+      { t: '[OK] All systems nominal. Loading interface...', c: 'b-ok', d: 2620 },
+    ];
+
+    setTimeout(() => {
+      clearInterval(mInt); mInt = setInterval(drawMatrix, 100);
+      const bs = document.getElementById('boot-screen');
+      const bt = document.getElementById('boot-text');
+      bs.classList.add('active');
+      let base = 0;
+      bootLines.forEach(({ t, c, d = base }, i) => {
+        const delay = typeof d === 'number' ? d : base;
+        base = delay + 280;
+        setTimeout(() => {
+          const s = document.createElement('span');
+          s.className = `bl ${c}`; s.textContent = t;
+          bt.appendChild(s);
+          requestAnimationFrame(() => requestAnimationFrame(() => s.classList.add('show')));
+        }, delay);
+      });
+      setTimeout(startAlert, 3100);
+    }, 2600);
+
+    // ═══ ALERT ═══
+    function startAlert() {
+      document.getElementById('boot-screen').classList.remove('active');
+      clearInterval(mInt);
+      canvas.style.transition = 'opacity 0.5s';
+      canvas.style.opacity = '0';
+
+      const as = document.getElementById('alert-screen');
+      as.classList.add('active');
+
+      const fakeIP = `${rnd(255)}.${rnd(255)}.${rnd(255)}.${rnd(255)}`;
+      document.getElementById('alert-ip').textContent = fakeIP;
+
+      let prog = 0;
+      const bar = document.getElementById('trace-bar');
+      const ti = setInterval(() => {
+        prog = Math.min(100, prog + rnd(14) + 3);
+        const f = Math.floor(prog / 10);
+        bar.textContent = `[${'█'.repeat(f)}${'░'.repeat(10 - f)}] ${prog}%`;
+        if (prog >= 100) clearInterval(ti);
+      }, 110);
+
+      setTimeout(() => document.getElementById('alert-joke').classList.add('show'), 1900);
+      setTimeout(() => {
+        as.classList.remove('active');
+        setTimeout(launchPortfolio, 400);
+      }, 3100);
     }
-    if (d.name) $('#nm').textContent = d.name.toUpperCase();
-  } catch (_) {}
-}
+    function rnd(n) { return Math.floor(Math.random() * n); }
 
-// ── boot: the scanline sweep, then the portrait draws in ──
-(function boot() {
-  const sweep = $('#sweep'), pre = $('#portrait');
-  const lines = PORTRAIT.split('\n');
-  let done = false;
+    // ═══ PORTFOLIO LAUNCH ═══
+    function launchPortfolio() {
+      canvas.remove();
+      const p = document.getElementById('portfolio');
+      p.classList.add('visible');
+      // Bug 3 fix: trigger tagline animation now that portfolio is visible
+      document.querySelector('.tagline').classList.add('animate');
+      setTimeout(drawPortrait, 200);
+      setGreeting();
+      renderProjects();
+      // Bug 2 fix: animate projects on initial load, not just on tab click
+      setTimeout(animProjects, 120);
+      fetchCommit();
+      // Replace the fallback list with the live one from the server.
+      loadLiveContent();
+    }
 
-  function draw() {
-    let i = 0;
-    (function next() {
-      if (i > lines.length) return;
-      pre.textContent = lines.slice(0, i).join('\n');
-      i++;
-      setTimeout(next, 18);
-    })();
-  }
-  function finish() {
-    if (done) return; done = true;
-    $('#boot').classList.add('gone');
-    setTimeout(() => $('#boot').remove(), 500);
-    draw();
-  }
+    // ═══ BRAILLE PORTRAIT (text, mirrors SSH TUI) ═══
+    const portraitLines = [
+      " ⠄⠠⡀⠄⠠⠀⠄⠠⠀⠄⢠⠀⠄⡠⠀⡄⠠⠀⠀⠠⠀⠄⠠⠀⠄⠀⠀⠀⠀⠀⠠⢀⠀⠄⠠⠀⠄⠠⠀⠄⠠⠀⠄⠠⠀⠄⠠⠀⠄⡀",
+      " ⢈⠐⠠⢈⠡⠈⠄⠡⡈⢐⠠⢈⠐⠠⠁⠀⠀⠀⠠⠁⡈⠄⡑⠈⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠂⠁⠈⠄⠡⠈⠄⠡⠈⠄⠡⠈⠄⡁⢂⠐",
+      " ⠠⠌⡐⠂⠄⠡⢈⠐⡀⠢⠐⠂⢉⠐⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠁⠌⠠⠁⠌⠠⢁⠂⡐⠠⢈",
+      " ⡐⠠⠄⠡⢈⡐⢈⡐⠠⢁⡘⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠈⠄⡁⢂⠐⠠⢁⠂",
+      " ⠠⠁⠌⡐⠠⠐⠠⢀⠃⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠂⠐⡀⠂⠌⡐⠠⢈",
+      " ⠡⠘⠠⠄⡑⢈⡁⠂⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⠀⠀⠄⡁⠂⠄⡁⢂",
+      " ⠂⡡⢁⢂⠰⢀⠰⢁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠡⢀⠡⢂⠐⠠",
+      " ⠡⠐⣀⠢⠐⢂⠰⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⢁⠂⠤⠘⠠",
+      " ⡈⠔⡀⢂⠁⡂⠄⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠤⡈⠔⠠⠈⠀⠑⠢⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠐⠠⠈⠄⡑⠈",
+      " ⡁⠆⡈⠔⢂⠡⠌⠀⠀⠀⠀⠀⠀⠀⠀⣀⠂⡌⢀⠈⠀⡁⠀⠀⠀⠀⠀⣉⠒⠠⠄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠂⠠⠈⠄⡡",
+      " ⠐⡠⠁⢌⠠⠒⡈⠄⠀⠀⠀⠀⠀⠀⡐⠄⢮⣐⠣⣄⠡⠀⠄⠀⠀⢠⠰⢁⡀⠰⠁⠀⠑⠂⠤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡁⠆⡐",
+      " ⠊⠄⡑⠠⢂⠁⠆⢀⠠⠒⠤⢀⠀⡰⢈⡜⢮⣇⡛⢤⢋⡔⡂⢆⣡⢎⠶⣡⠀⠄⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠰⠀⠒⠠",
+      " ⡡⠘⠠⢁⠂⣉⠰⠀⠆⢠⡐⠡⢂⠡⠒⢌⠲⠩⠜⡀⠂⠈⠰⣎⡵⣮⢳⡡⠊⢄⡀⠂⡀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠄⡈⠤⠁",
+      " ⠡⠌⡁⠂⢌⠀⠆⢡⠚⡌⢡⠃⢌⠂⡉⠄⠃⠁⠀⠀⢤⡱⢃⡈⠀⠁⠃⠱⢁⠦⡐⢆⠠⢄⠠⡀⠀⠀⠀⠀⠀⠀⠀⠀⠠⠐⠠⢁⢂⠡",
+      " ⡐⡈⠤⠑⡀⠊⠌⡄⠁⠈⠤⣉⠰⡈⢐⠈⠄⠀⠠⠙⢢⠣⠅⡀⠀⠀⠈⠀⠀⠂⠈⢍⠺⣌⠑⠠⠀⠀⠀⠀⠀⠀⠀⠀⠡⠈⠔⠂⠄⠊",
+      " ⠒⡀⠆⠡⠐⣉⠰⠠⠀⠀⠒⡠⠑⡄⠃⠌⠀⠀⠀⠤⣀⡤⣐⣀⠂⠘⢀⠂⡄⠃⠀⢀⠃⠤⠉⠄⠀⠀⠀⠀⠀⡀⢂⠡⠌⠡⢈⡐⠉⡄",
+      " ⠆⠡⠌⢂⠡⠄⢂⠡⠃⠀⢁⠢⢑⠠⢉⠂⠠⡄⠀⠀⠀⠀⠁⠙⠚⠣⢄⠀⠀⠌⠀⠀⡈⠄⡑⠀⠀⠀⠄⢂⠡⠐⢂⡐⠈⠤⠁⡄⠡⢀",
+      " ⡐⠡⡈⢂⠔⠨⠄⢂⠀⠀⡀⠆⣁⠢⠁⡌⢰⢩⠖⡔⢶⡠⠀⠀⠀⠀⠀⠀⠀⠀⡀⠐⢀⠐⠀⠀⠠⢉⠰⠈⠄⠃⠤⢀⡉⠄⡡⠠⢁⠂",
+      " ⡠⠡⠐⠡⣈⠂⢅⠂⠀⠀⡐⠄⡀⠂⢅⢢⡁⢎⡘⠌⠠⠙⠹⠒⠧⢀⠠⠘⠀⠠⠀⡁⠠⢈⠂⠌⡐⢁⠂⡉⠤⢉⠐⡠⠐⢂⠁⢂⠡⠈",
+      " ⢁⢂⠉⠔⠠⡈⠄⢊⢀⠰⡐⠠⢀⠉⠄⢂⠹⣄⠲⣈⢄⡐⠀⠁⡐⠠⢂⠡⠈⢀⠐⠀⡰⠀⠌⡐⠠⠂⢄⢁⠂⡂⠡⠄⡑⢈⠰⠈⠄⡡",
+      " ⠂⡄⠊⠌⡐⠠⠑⣈⠐⢢⠡⠘⠠⢈⠐⠠⠁⠌⡱⠌⠦⡑⢎⡰⢀⠡⠂⡐⠀⠀⠀⢠⠁⠌⡐⠠⠡⠌⡀⠆⢂⡁⠒⣈⠐⠌⡠⠑⡈⠄",
+      " ⡡⠄⠉⠒⠈⠁⠈⠀⠈⢆⠡⢃⠁⠂⠌⡐⠀⢀⠀⠌⠐⠁⠎⠐⠁⠂⠁⠀⠀⠰⢈⠄⠌⡐⠠⠑⠠⢂⠡⠈⡄⠰⠁⡄⠌⢂⠄⡁⠆⡈",
+      " ⠀⠀⠀⠀⠀⠀⠀⠀⢌⠢⡑⠌⡌⠌⡐⠀⠄⠂⠀⠀⡀⠀⠀⠀⠀⠀⠀⠄⡈⠐⠂⠌⡐⠠⠑⡈⢁⠂⠄⠃⠄⡡⠒⠠⠘⣀⠢⠐⢂⠡",
+      " ⠀⠀⠀⠀⠀⠀⢰⢁⠢⢡⠘⡐⢌⠢⡁⠌⠀⠀⠀⠄⠀⠀⠀⠈⢀⠠⢁⢂⠐⠀⠈⠀⠐⠡⡁⠌⠠⠌⡀⠃⠌⠠⢁⠊⠡⢀⠂⠱⢀⠂",
+    ];
 
-  if (window.matchMedia('(prefers-reduced-motion:reduce)').matches) {
-    pre.textContent = PORTRAIT; $('#boot').remove(); return;
-  }
-  // 300ms sweep, matching the terminal's phase I.
-  requestAnimationFrame(() => { sweep.style.transition = 'top .3s linear'; sweep.style.top = '100%'; });
-  setTimeout(finish, 340);
-  ['keydown','pointerdown','wheel','touchstart'].forEach(e =>
-    window.addEventListener(e, finish, {once:true, passive:true}));
-})();
+    function drawPortrait() {
+      const pre = document.getElementById('portrait-pre');
+      pre.textContent = '';
+      pre.classList.add('show');
+      let row = 0;
+      function nextRow() {
+        if (row >= portraitLines.length) return;
+        pre.textContent += (row === 0 ? '' : '\n') + portraitLines[row];
+        row++;
+        setTimeout(nextRow, 30);
+      }
+      nextRow();
+    }
 
-// ── the quiet heartbeat, same sequence as the footer over SSH ──
-(function beat() {
-  const seq = ['.','.','∘','◯','∘','.','.'];
-  let i = 0;
-  setInterval(() => { $('#beat').textContent = seq[i++ % seq.length]; }, 500);
-})();
+    // ═══ PROJECTS DATA ═══
+    // FALLBACK ONLY. The live list is fetched from /api/content at load, so
+    // this page shows the same projects as the SSH TUI — including any the
+    // GitHub sync worker has added — without a rebuild.
+    //
+    // This array is what renders if the fetch fails or the file is opened
+    // directly from disk, so the page is never empty. It does not need to be
+    // kept perfectly in sync; content.yaml is the source of truth.
+    let PROJECTS = [
+      {
+        title: 'EmbedGen — Domain-Specific Code LLM', status: 'wip', label: 'WIP', hl: '',
+        desc: 'Built a 62M-parameter transformer from scratch trained on embedded-systems C/C++ codebases. Custom BPE tokeniser (32k vocab), MiniHash LSH deduplication, multi-head attention with RoPE + RMSNorm. Quantized to ONNX FP16 for edge deployment. EmbedGen outperforms CodeLLaMA-7B (80x larger) on EmbedEval — a domain-specific benchmark across 10 embedded categories (GPIO, UART, DMA, FreeRTOS, SPI, ADC, Timers, Interrupts). Ships as a VS Code extension with C/C++ autocomplete.',
+        tags: ['Python', 'PyTorch', 'ONNX', 'CUDA', 'Transformers', 'FastAPI'], github: 'github.com/trafalgar-2006/EmbedGen'
+      },
+      {
+        title: 'SAR2EO — Satellite Image Translation', status: 'wip', label: 'WIP', hl: '',
+        desc: 'Deep learning pipeline that translates Synthetic Aperture Radar (SAR) satellite imagery to Electro-Optical (EO) visible-light images using conditional GANs and diffusion-based domain adaptation. Trained on paired SAR/EO datasets, enabling all-weather all-time satellite reconnaissance from radar-only feeds. Built on top of ISRO LEOS research experience.',
+        tags: ['Python', 'PyTorch', 'GANs', 'OpenCV', 'NumPy'], github: 'github.com/trafalgar-2006/sar2eo'
+      },
+      {
+        title: 'ISRO LEOS — Sim-to-Real Vision', status: 'research', label: 'Research',
+        hl: '22 FPS on Jetson',
+        desc: 'Built a full synthetic-to-real perception pipeline for ISRO\'s Low Earth Orbit Satellite lab. Generated 6,000+ photo-realistic satellite images in BlenderProc with automated COCO/YOLO annotations. Implemented SOG2 rotations with spherical camera trajectories for 360° angular coverage. Reduced data generation time 70% by benchmarking path-scaling parameters. Deployed YOLOv7 on NVIDIA Jetson Xavier via TensorRT @ 22 FPS. Built GAN-based domain adaptation to close the sim-to-real gap.',
+        tags: ['BlenderProc', 'YOLOv7', 'TensorRT', 'Python', 'OpenCV'], github: ''
+      },
+      {
+        title: 'Autonomous Trading System', status: 'live', label: 'Live', hl: '',
+        desc: 'End-to-end AI swing-trading agent that generates signals across the entire US equity market. Runs a multi-factor ML model (momentum + sentiment + technicals), executes paper trades via Alpaca API with position sizing and stop-loss logic, and logs every decision to SQLite for post-hoc analysis. Runs 24/7 on Oracle Cloud Always Free — zero hosting cost.',
+        tags: ['Python', 'SQLite', 'Alpaca API', 'Oracle Cloud', 'Pandas'], github: 'github.com/trafalgar-2006/autonomous-trading-agent'
+      },
+      {
+        title: 'Zycus — Procurement Intelligence Agent', status: 'wip', label: 'WIP', hl: '',
+        desc: 'AI-powered procurement analytics and automation agent. Processes supplier data, contract terms, and spend analytics to surface actionable insights and automate repetitive procurement workflows. Built in Python with an agentic pipeline for document parsing, classification, and reporting.',
+        tags: ['Python', 'AI', 'Pandas', 'FastAPI'], github: 'github.com/trafalgar-2006/zycus'
+      },
+      {
+        title: 'Webcraft Studios — Digital Agency', status: 'live', label: 'Live', hl: '',
+        desc: 'Founded and built a boutique digital agency serving clients across India and the UAE. Engineered full-stack platforms using React, Node.js, MongoDB and Stripe. Scaled to multiple international SaaS clients within the first year. Built a customer-first delivery pipeline (Discovery → Design → Dev → Launch → Support) cutting delivery cycle time by 30%+. Revenue-generating since 2025.',
+        tags: ['React', 'Node.js', 'MongoDB', 'AWS', 'Python', 'Stripe'], github: ''
+      },
+      {
+        title: 'Bird Sound Species Detector', status: 'research', label: 'Research',
+        hl: '90%+ accuracy',
+        desc: 'CNN classifier that identifies bird species from raw field audio. Converts MP3 recordings to mel-spectrograms, trains a ResNet-18 on a curated multi-species dataset, outputs species predictions with confidence scores. Built as a field tool for ornithologists doing surveys without internet access.',
+        tags: ['Python', 'TensorFlow', 'ResNet', 'Librosa', 'CNNs'], github: ''
+      },
+      {
+        title: 'BioAcoustic Frog Classifier', status: 'research', label: 'Research', hl: '',
+        desc: 'Audio ML pipeline for automated frog species identification across 803 species. Applies noise reduction, bandpass filtering, and MFCC feature extraction on environmental recordings, then matches peak frequencies against a reference database. Designed for biodiversity researchers processing hundreds of hours of field audio.',
+        tags: ['Python', 'Librosa', 'Scikit-learn', 'NumPy'], github: 'github.com/trafalgar-2006/BioAcoustic-Frog-Classifier'
+      },
+      {
+        title: 'SSH Portfolio (this one)', status: 'live', label: 'Live', hl: '',
+        desc: 'An interactive TUI portfolio served over raw SSH — no browser, no JavaScript. Built in Go with Bubbletea and Wish. Matrix rain intro, fake boot sequence, 5 colour themes, split-pane projects view, live visitor counter, jittering ping display, decrypt-reveal animations, vim motions, and smooth lerp transitions. You\'re looking at it right now.',
+        tags: ['Go', 'Bubbletea', 'Docker', 'Wish', 'SSH'], github: 'github.com/trafalgar-2006/portfolio'
+      },
+    ];
 
-work(); bio(); cv(); contacts(); now(); live();
+    function renderProjects() {
+      const list = document.getElementById('projects-list');
+      list.innerHTML = '';
+      PROJECTS.forEach((p, i) => {
+        const div = document.createElement('div');
+        div.className = 'proj-item';
+        div.innerHTML = `
+      <div class="proj-num">${String(i + 1).padStart(2, '0')}.</div>
+      <div class="proj-body">
+        <div class="proj-hdr">
+          <span class="proj-name">${p.title}</span>
+          <span class="badge ${p.status}">[${p.label}]</span>
+          ${p.hl ? `<span class="proj-hl">${p.hl.startsWith('⚡') ? p.hl : '⚡ ' + p.hl}</span>` : ''}
+        </div>
+        <div class="proj-desc">${p.desc}</div>
+        <div class="proj-tags">${p.tags.map(t => `<span class="tag">[${t}]</span>`).join('')}</div>
+        ${p.github ? `<a href="https://${p.github}" target="_blank" rel="noopener noreferrer" class="proj-gh">→ ${p.github}</a>` : ''}
+      </div>`;
+        list.appendChild(div);
+      });
+    }
 
-fetch('https://api.github.com/repos/Trafalgar-2006/portfolio/commits?per_page=1')
-  .then(r => r.ok ? r.json() : null)
-  .then(c => { if (c && c[0]) $('#tele').textContent =
-    'last push  ·  ' + c[0].commit.message.split('\n')[0].slice(0, 42); })
-  .catch(() => {});
-</script>
+    // ═══ LIVE CONTENT ═══
+    // Pull the real project list from the server. Everything here is
+    // best-effort: any failure leaves the fallback array on screen.
+    async function loadLiveContent() {
+      try {
+        const res = await fetch('/api/content', { cache: 'no-cache' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !Array.isArray(data.projects) || data.projects.length === 0) return;
+
+        // Trust the shape, but don't let a malformed entry blank the page.
+        PROJECTS = data.projects.map(p => ({
+          title: String(p.title || 'Untitled'),
+          status: ['live', 'wip', 'research'].includes(p.status) ? p.status : 'wip',
+          label: String(p.label || ''),
+          hl: String(p.hl || ''),
+          desc: String(p.desc || ''),
+          tags: Array.isArray(p.tags) ? p.tags.map(String) : [],
+          github: String(p.github || ''),
+          auto: !!p.auto,
+        }));
+        renderProjects();
+        if (activeTab === 'projects') animProjects();
+      } catch (_) {
+        // Offline, opened as a file:// URL, or the API is down —
+        // the fallback list is already rendered.
+      }
+    }
+
+    // ═══ TABS ═══
+    let activeTab = 'projects';
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+      });
+      document.querySelectorAll('.tab-pane').forEach(p => {
+        p.style.display = p.id === `tab-${tab}` ? 'block' : 'none';
+      });
+      const ca = document.getElementById('content-area');
+      ca.classList.add('visible');
+      setTimeout(() => ca.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+
+      if (tab === 'projects') animProjects();
+      if (tab === 'about') animAbout();
+      if (tab === 'contacts') animContacts();
+    }
+
+    function animProjects() {
+      document.querySelectorAll('.proj-item').forEach((el, i) => {
+        el.classList.remove('in');
+        el.querySelectorAll('.tag').forEach(t => t.classList.remove('in'));
+        setTimeout(() => {
+          el.classList.add('in');
+          el.querySelectorAll('.tag').forEach((t, j) => setTimeout(() => t.classList.add('in'), j * 55 + 200));
+        }, i * 70);
+      });
+    }
+    function animAbout() {
+      document.querySelectorAll('.exp-entry').forEach((el, i) => {
+        el.classList.remove('in');
+        setTimeout(() => el.classList.add('in'), i * 110);
+      });
+    }
+    function animContacts() {
+      document.querySelectorAll('.contact-item').forEach((el, i) => {
+        el.classList.remove('in');
+        setTimeout(() => el.classList.add('in'), i * 90);
+      });
+      setTimeout(() => {
+        const box = document.querySelector('.ssh-box');
+        if (box) {
+          box.style.borderColor = 'var(--cyan)';
+          setTimeout(() => { box.style.borderColor = ''; }, 700);
+        }
+      }, 500);
+    }
+
+    // ═══ SSH COPY ═══
+    function copySSH(el) {
+      navigator.clipboard.writeText('ssh ssh.mohith.is-a.dev -p 41074').then(() => {
+        const h = el.querySelector('.ssh-copy-hint');
+        h.textContent = '[ copied! ]'; h.style.color = 'var(--cyan)';
+        el.style.animation = 'sshFlash 0.5s ease';
+        setTimeout(() => { h.textContent = '[ click to copy ]'; h.style.color = ''; el.style.animation = ''; }, 2000);
+      });
+    }
+
+    // ═══ TIME GREETING ═══
+    function setGreeting() {
+      const el = document.getElementById('time-greeting');
+      if (!el) return;
+      const h = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })).getHours();
+      const msgs = [
+        [5, 12, 'Good morning. You caught me early.'],
+        [12, 17, 'Good afternoon. In the middle of something, but hey.'],
+        [17, 21, 'Good evening. Wrapping things up.'],
+        [21, 24, 'Late night? Same. Welcome.'],
+        [0, 5, 'You\'re up late. Or very early. Either way — hi.'],
+      ];
+      const m = msgs.find(([a, b]) => h >= a && h < b) || msgs[0];
+      el.textContent = m[2];
+    }
+
+    // ═══ GITHUB COMMIT ═══
+    function fetchCommit() {
+      fetch('https://api.github.com/repos/trafalgar-2006/portfolio/commits?per_page=1')
+        .then(r => r.json())
+        .then(data => {
+          if (!data || !data[0]) return;
+          const msg = data[0].commit.message.split('\n')[0];
+          const date = new Date(data[0].commit.author.date);
+          const diff = Math.round((Date.now() - date) / 36e5);
+          const t = diff < 1 ? 'just now' : diff < 24 ? `${diff}h ago` : `${Math.floor(diff / 24)}d ago`;
+          document.getElementById('last-pushed').innerHTML =
+            `last pushed: <span class="lp-msg">"${msg}"</span> · ${t}`;
+        }).catch(() => {
+          document.getElementById('last-pushed').innerHTML =
+            `last pushed: <span class="lp-msg">"trigger bot re-review"</span> · 23h ago`;
+        });
+    }
+
+    // ═══ KEYBOARD NAV ═══
+    const TABS = ['projects', 'about', 'contacts'];
+    document.addEventListener('keydown', e => {
+      if (!document.getElementById('portfolio').classList.contains('visible')) return;
+      if (e.key === 'ArrowRight' || e.key === 'l') {
+        const i = TABS.indexOf(activeTab);
+        switchTab(TABS[(i + 1) % TABS.length]);
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'h') {
+        const i = TABS.indexOf(activeTab);
+        switchTab(TABS[(i - 1 + TABS.length) % TABS.length]);
+      }
+      if (e.key === 'q' || e.key === 'Escape') {
+        document.getElementById('content-area').classList.remove('visible');
+      }
+    });
+  </script>
 </body>
+
 </html>

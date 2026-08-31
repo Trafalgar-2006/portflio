@@ -34,7 +34,8 @@ var allViews = []struct {
 // prepared returns a Model sitting on the given view with its state populated,
 // so the resize path exercises real content rather than empty panels.
 func prepared(v View, w, h int) Model {
-	m := booted(w, h)
+	m := NewModel(nil)
+	m = drive(m, tea.WindowSizeMsg{Width: w, Height: h})
 	m.currentView = v
 	m.games = views.NewAllGames(m.width, m.height)
 	m.isAdmin = true // exercise the full dashboard, not the denial screen
@@ -103,39 +104,37 @@ func TestResizeOnEveryPanel(t *testing.T) {
 	}
 }
 
-// Every project must stay reachable by scrolling at any terminal size — the
-// flat pane replaced the windowed list, so reachability is the invariant now.
-func TestEveryProjectReachableAtAnySize(t *testing.T) {
+// Resizing must not desynchronise the projects list window from its cursor —
+// the panel shrinking could otherwise leave the selection off-screen.
+func TestResizeKeepsProjectCursorVisible(t *testing.T) {
 	saved := views.Projects()
 	t.Cleanup(func() { views.SetProjects(saved) })
 
-	many := make([]views.Project, 12)
+	many := make([]views.Project, 30)
 	for i := range many {
-		many[i] = views.Project{
-			Title:       fmt.Sprintf("Project %02d", i),
-			Description: "a description",
-			Status:      "Live",
-		}
+		many[i] = views.Project{Title: fmt.Sprintf("Project %02d", i), Description: "d", Status: "Live"}
 	}
 	views.SetProjects(many)
 
-	for _, sz := range [][2]int{{120, 40}, {100, 30}, {90, 24}, {80, 20}} {
-		m := booted(sz[0], sz[1])
-		m.currentView = ViewProjects
-		theme := views.Themes[m.themeIdx]
+	m := prepared(ViewProjects, 120, 40)
+	m.projectCursor = 25
+	m.followProjectCursor()
 
-		last := many[len(many)-1].Title
-		found := false
-		for i := 0; i <= m.maxContentScroll(theme)+2 && !found; i++ {
-			if strings.Contains(views.StripAnsiForTest(m.View()), last) {
-				found = true
-				break
-			}
-			m = drive(m, key("j"))
+	for _, sz := range [][2]int{{120, 12}, {120, 50}, {120, 10}, {120, 40}, {80, 14}} {
+		m = drive(m, tea.WindowSizeMsg{Width: sz[0], Height: sz[1]})
+		m.followProjectCursor()
+
+		rows := views.ProjectListRows(m.height)
+		top := views.ProjectListTop(m.projectCursor, m.projectScroll, rows)
+		if m.projectCursor < top || m.projectCursor >= top+rows {
+			t.Errorf("at %dx%d the cursor (%d) fell outside the window [%d,%d)",
+				sz[0], sz[1], m.projectCursor, top, top+rows)
 		}
-		if !found {
-			t.Errorf("at %dx%d the last project %q was never reachable (pane %d, body %d)",
-				sz[0], sz[1], last, m.contentPaneHeight(), len(m.contentLines(theme)))
+		// And the selection must actually be on screen.
+		out := views.StripAnsiForTest(m.View())
+		if !strings.Contains(out, many[m.projectCursor].Title) {
+			t.Errorf("at %dx%d the selected project %q is not visible",
+				sz[0], sz[1], many[m.projectCursor].Title)
 		}
 	}
 }

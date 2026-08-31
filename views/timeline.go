@@ -40,41 +40,6 @@ func Commits() []Commit {
 	return out
 }
 
-// CommitActivity buckets the fetched commit history into `buckets` equal
-// spans between the oldest and newest commit, returning a count per bucket.
-// Feeds the rail sparkline — real push activity, not a decorative waveform.
-func CommitActivity(buckets int) []int {
-	if buckets <= 0 {
-		return nil
-	}
-	cs := Commits()
-	if len(cs) < 2 {
-		return nil
-	}
-
-	// Commits arrive newest-first.
-	newest, oldest := cs[0].At, cs[len(cs)-1].At
-	span := newest.Sub(oldest)
-	if span <= 0 {
-		return nil
-	}
-
-	out := make([]int, buckets)
-	for _, c := range cs {
-		// 0 = oldest bucket, buckets-1 = newest.
-		frac := float64(c.At.Sub(oldest)) / float64(span)
-		i := int(frac * float64(buckets))
-		if i >= buckets {
-			i = buckets - 1
-		}
-		if i < 0 {
-			i = 0
-		}
-		out[i]++
-	}
-	return out
-}
-
 // RenderTimeline draws the "time travel" view: a scrubber across the project's
 // commit history, with the selected commit expanded. cursor 0 is the newest.
 func RenderTimeline(r *lipgloss.Renderer, width, height, cursor int, commits []Commit, theme Theme) string {

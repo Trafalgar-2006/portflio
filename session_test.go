@@ -54,7 +54,8 @@ func TestApplyDirectRoute(t *testing.T) {
 		{"tetris", ViewGames},
 	}
 	for _, tc := range cases {
-		m := booted(100, 36)
+		m := NewModel(nil)
+		m.width, m.height = 100, 30
 		m.directRoute = tc.route
 		m.applyDirectRoute()
 
@@ -71,7 +72,8 @@ func TestApplyDirectRoute(t *testing.T) {
 	}
 
 	// The FX route opens the screensaver rather than a static view.
-	m := booted(100, 36)
+	m := NewModel(nil)
+	m.width, m.height = 100, 30
 	m.directRoute = "fx"
 	m.applyDirectRoute()
 	if !m.saverActive {
@@ -81,7 +83,8 @@ func TestApplyDirectRoute(t *testing.T) {
 
 // A non-admin asking for the admin route must get the denial, not the stats.
 func TestAdminRouteRequiresKey(t *testing.T) {
-	m := booted(100, 36)
+	m := NewModel(nil)
+	m.width, m.height = 100, 30
 	m.isAdmin = false
 	m.directRoute = "admin"
 	m.applyDirectRoute()
@@ -163,9 +166,9 @@ func TestMaskIP(t *testing.T) {
 // The SSH client banner must be trimmed to something readable.
 func TestClientName(t *testing.T) {
 	cases := map[string]string{
-		"SSH-2.0-OpenSSH_9.6":             "OpenSSH_9.6",
+		"SSH-2.0-OpenSSH_9.6":            "OpenSSH_9.6",
 		"SSH-2.0-OpenSSH_for_Windows_8.1": "OpenSSH_for_Windows_8.1",
-		"":                                "unknown",
+		"":                               "unknown",
 	}
 	for in, want := range cases {
 		if got := clientName(in); got != want {

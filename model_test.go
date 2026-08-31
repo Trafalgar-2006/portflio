@@ -41,27 +41,20 @@ func settle(m Model) Model {
 	for i := 0; i < 200; i++ {
 		nm, _ := m.Update(tickMsg{})
 		m = nm.(Model)
-		// Settled means: boot finished, no transition in flight, and no page
-		// re-shade still streaming.
-		if m.bootDone && m.wipePhase == 0 && !m.splatterOn && m.uiPhase() != stateShade {
+		if m.wipePhase == 0 && !m.splatterOn {
 			break
 		}
 	}
 	return m
 }
 
-// booted returns a model past the opening sequence, sized and ready.
-func booted(w, h int) Model {
-	m := NewModel(nil)
-	m = drive(m, tea.WindowSizeMsg{Width: w, Height: h})
-	return settle(m)
-}
-
 // openAbout navigates from home to the About view.
 func openAbout(t *testing.T) Model {
 	t.Helper()
-	m := booted(100, 36)
-	m = settle(drive(m, key("right"), key("enter"))) // nav slot 1 = About
+	m := NewModel(nil)
+	m.currentView = ViewHome
+	m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 24})
+	m = settle(drive(m, key("right"), key("enter"))) // tab 1 = About
 	if m.currentView != ViewAbout {
 		t.Fatalf("expected ViewAbout, got %v", m.currentView)
 	}
@@ -76,9 +69,9 @@ func TestViewFitsTerminalHeight(t *testing.T) {
 		m.currentView = ViewHome
 		m = drive(m, tea.WindowSizeMsg{Width: 100, Height: h})
 		for _, nav := range [][]tea.Msg{
-			{key("enter")},                             // Projects
-			{key("right"), key("enter")},               // About
-			{key("right"), key("right"), key("enter")}, // Contacts
+			{key("enter")},                              // Projects
+			{key("right"), key("enter")},                // About
+			{key("right"), key("right"), key("enter")},  // Contacts
 		} {
 			mm := settle(drive(m, nav...))
 			got := strings.Count(mm.View(), "\n") + 1
@@ -89,42 +82,32 @@ func TestViewFitsTerminalHeight(t *testing.T) {
 	}
 }
 
-// The About page is taller than the content pane; every row must be reachable
-// by scrolling, and scrolling must clamp at the end.
+// About is ~68 rows; on a 24-row terminal every row must be reachable.
 func TestAboutIsFullyScrollable(t *testing.T) {
 	m := openAbout(t)
-	theme := views.Themes[m.themeIdx]
-
-	total := len(m.contentLines(theme))
-	pane := m.contentPaneHeight()
-	if total <= pane {
-		t.Skipf("About fits the pane (%d rows in %d); nothing to scroll", total, pane)
+	body := m.renderBody(views.Themes[m.themeIdx])
+	total := strings.Count(strings.TrimRight(body, "\n"), "\n") + 1
+	if total <= m.viewportHeight() {
+		t.Skipf("About fits the viewport (%d rows); nothing to scroll", total)
 	}
 
-	// The last line of the page must become visible after scrolling.
-	last := strings.TrimSpace(views.StripAnsiForTest(m.contentLines(theme)[total-1]))
-	if last == "" {
-		last = strings.TrimSpace(views.StripAnsiForTest(m.contentLines(theme)[total-2]))
+	// Bottom of the document carries the resume link — scroll until we see it.
+	const marker = "Resume"
+	if strings.Contains(m.View(), marker) {
+		t.Fatalf("fixture invalid: %q visible without scrolling", marker)
 	}
-	if strings.Contains(views.StripAnsiForTest(m.View()), last) {
-		t.Skip("the page already fits; nothing to prove")
-	}
-	for i := 0; i < total+10 && !strings.Contains(views.StripAnsiForTest(m.View()), last); i++ {
+	for i := 0; i < 200 && !strings.Contains(m.View(), marker); i++ {
 		m = drive(m, key("j"))
 	}
-	if !strings.Contains(views.StripAnsiForTest(m.View()), last) {
-		t.Errorf("could not scroll to the last line %q (pane %d, body %d)", last, pane, total)
+	if !strings.Contains(m.View(), marker) {
+		t.Errorf("could not scroll to %q in About (viewport %d, body %d rows)", marker, m.viewportHeight(), total)
 	}
-
 	// Scrolling must clamp, not run away.
 	m = drive(m, key("G"))
 	atEnd := m.scrollY
 	m = drive(m, key("j"), key("j"), key("j"))
 	if m.scrollY != atEnd {
 		t.Errorf("scroll ran past the end: %d -> %d", atEnd, m.scrollY)
-	}
-	if m.scrollY > total {
-		t.Errorf("scroll offset %d exceeds the content length %d", m.scrollY, total)
 	}
 }
 
@@ -217,7 +200,7 @@ func TestMatrixRebuildsOnResize(t *testing.T) {
 	for i, ln := range strings.Split(strings.TrimRight(m.View(), "\n"), "\n") {
 		if w := len([]rune(views.StripAnsiForTest(ln))); w != 200 {
 			t.Fatalf("rendered row %d is %d columns wide, want 200", i, w)
-		}
+			}
 	}
 }
 
@@ -320,17 +303,17 @@ func TestScreensaverMouseInteraction(t *testing.T) {
 	}
 }
 
-// Navigation must be INSTANT: one keypress, one frame, you're there.
-// Regression guard for the particle-splatter transition that used to sit
-// between the visitor and every screen they asked for.
-func TestNavigationIsInstant(t *testing.T) {
+// The splatter transition must always complete and land on the target view —
+// a stalled transition would freeze navigation.
+func TestSplatterTransitionAlwaysLands(t *testing.T) {
 	targets := []struct {
 		keys []tea.Msg
 		want View
 	}{
 		{[]tea.Msg{key("enter")}, ViewProjects},
 		{[]tea.Msg{key("right"), key("enter")}, ViewAbout},
-		{[]tea.Msg{key("right"), key("right"), key("enter")}, ViewResume},
+		{[]tea.Msg{key("right"), key("right"), key("enter")}, ViewContacts},
+		{[]tea.Msg{key("right"), key("right"), key("right"), key("enter")}, ViewResume},
 	}
 	for _, tc := range targets {
 		m := NewModel(nil)
@@ -338,17 +321,21 @@ func TestNavigationIsInstant(t *testing.T) {
 		m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 30})
 		m = drive(m, tc.keys...)
 
-		// No ticks pumped: the view must already be correct.
-		if m.currentView != tc.want {
-			t.Errorf("navigation was not instant — landed on %v, want %v", m.currentView, tc.want)
+		// Pump until the transition finishes, bounded.
+		frames := 0
+		for (m.splatterOn || m.wipePhase != 0) && frames < 300 {
+			nm, _ := m.Update(tickMsg{})
+			m = nm.(Model)
+			if lines := strings.Split(m.View(), "\n"); len(lines) > 30 {
+				t.Fatalf("transition frame %d overflowed: %d rows", frames, len(lines))
+			}
+			frames++
 		}
 		if m.splatterOn || m.wipePhase != 0 {
-			t.Errorf("a blocking transition is still in the navigation path "+
-				"(splatterOn=%v wipePhase=%d)", m.splatterOn, m.wipePhase)
+			t.Fatalf("transition to %v never completed", tc.want)
 		}
-		// And the very first frame must be sane.
-		if lines := strings.Split(m.View(), "\n"); len(lines) > 30 {
-			t.Fatalf("first frame overflowed: %d rows", len(lines))
+		if m.currentView != tc.want {
+			t.Errorf("landed on %v, want %v", m.currentView, tc.want)
 		}
 	}
 }

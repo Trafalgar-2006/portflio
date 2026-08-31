@@ -43,11 +43,10 @@ jobs:
           # Only the files this project actively formats; the older views files
           # use a deliberate compact style that gofmt would rewrite wholesale.
           unformatted=$(gofmt -l env.go api.go main.go stats.go session.go guestbook.go \
-            github_sync.go wakatime.go screensaver.go ui.go \
+            github_sync.go wakatime.go screensaver.go \
             views/fx.go views/fx_screen.go views/fx_text.go views/games.go \
             views/github.go views/guestbook.go views/admin.go views/neofetch.go \
-            views/timeline.go views/content.go views/layout.go \
-            views/help.go views/anim.go views/hero.go views/compose.go views/blocks.go)
+            views/timeline.go views/content.go views/layout.go)
           if [ -n "$unformatted" ]; then
             echo "::error::gofmt needed on:"; echo "$unformatted"; exit 1
           fi
